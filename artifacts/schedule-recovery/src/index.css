@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @plugin "@tailwindcss/typography";
@@ -33,77 +32,77 @@
 }
 
 :root {
-  --background: 43 35% 95%;
-  --foreground: 204 30% 15%;
-  --border: 38 20% 83%;
-  --input: 38 20% 83%;
-  --ring: 29 93% 53%;
-  --card: 42 36% 98%;
-  --card-foreground: 204 30% 15%;
-  --card-border: 38 20% 85%;
-  --popover: 42 36% 98%;
-  --popover-foreground: 204 30% 15%;
-  --popover-border: 38 20% 85%;
-  --primary: 29 93% 53%;
-  --primary-foreground: 204 30% 12%;
-  --secondary: 193 27% 89%;
-  --secondary-foreground: 202 34% 20%;
-  --muted: 40 20% 91%;
-  --muted-foreground: 203 12% 43%;
-  --accent: 171 26% 83%;
-  --accent-foreground: 185 40% 17%;
+  --background: 40 14% 94%;
+  --foreground: 270 8% 15%;
+  --border: 30 7% 82%;
+  --input: 30 7% 82%;
+  --ring: 18 93% 56%;
+  --card: 40 100% 99%;
+  --card-foreground: 270 8% 15%;
+  --card-border: 30 7% 84%;
+  --popover: 40 100% 99%;
+  --popover-foreground: 270 8% 15%;
+  --popover-border: 30 7% 84%;
+  --primary: 18 93% 56%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 204 17% 91%;
+  --secondary-foreground: 207 28% 24%;
+  --muted: 35 8% 91%;
+  --muted-foreground: 270 4% 41%;
+  --accent: 204 17% 91%;
+  --accent-foreground: 207 28% 24%;
   --destructive: 2 67% 47%;
   --destructive-foreground: 0 0% 98%;
-  --sidebar: 202 32% 17%;
-  --sidebar-foreground: 42 31% 93%;
-  --sidebar-border: 201 21% 26%;
-  --sidebar-primary: 29 93% 53%;
-  --sidebar-primary-foreground: 204 30% 12%;
-  --sidebar-accent: 199 24% 25%;
-  --sidebar-accent-foreground: 42 31% 93%;
-  --sidebar-ring: 29 93% 53%;
-  --chart-1: 29 93% 53%;
-  --chart-2: 171 36% 42%;
-  --chart-3: 205 35% 34%;
-  --chart-4: 43 72% 66%;
+  --sidebar: 270 9% 8%;
+  --sidebar-foreground: 40 100% 99%;
+  --sidebar-border: 270 6% 19%;
+  --sidebar-primary: 18 93% 56%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 207 16% 20%;
+  --sidebar-accent-foreground: 40 100% 99%;
+  --sidebar-ring: 18 93% 56%;
+  --chart-1: 18 93% 56%;
+  --chart-2: 207 25% 38%;
+  --chart-3: 270 8% 15%;
+  --chart-4: 30 7% 60%;
   --chart-5: 2 67% 57%;
-  --app-font-sans: 'DM Sans', sans-serif;
+  --app-font-sans: Inter, "Segoe UI", sans-serif;
   --app-font-serif: Georgia, serif;
-  --app-font-mono: 'DM Mono', monospace;
-  --radius: 0.8rem;
-  --shadow-sm: 0 3px 12px rgba(39, 50, 53, .06);
+  --app-font-mono: "SFMono-Regular", Consolas, monospace;
+  --radius: 0.18rem;
+  --shadow-sm: 0 2px 8px rgba(32, 27, 34, .045);
 }
 
 .dark {
-  --background: 204 30% 11%;
-  --foreground: 42 31% 93%;
-  --border: 201 21% 26%;
-  --input: 201 21% 26%;
-  --ring: 29 93% 53%;
-  --card: 202 27% 15%;
-  --card-foreground: 42 31% 93%;
-  --card-border: 201 21% 26%;
-  --popover: 202 27% 15%;
-  --popover-foreground: 42 31% 93%;
-  --popover-border: 201 21% 26%;
-  --primary: 29 93% 53%;
-  --primary-foreground: 204 30% 12%;
-  --secondary: 199 24% 25%;
-  --secondary-foreground: 42 31% 93%;
-  --muted: 202 24% 21%;
-  --muted-foreground: 200 14% 68%;
-  --accent: 171 26% 28%;
-  --accent-foreground: 42 31% 93%;
+  --background: 270 9% 8%;
+  --foreground: 40 100% 99%;
+  --border: 270 6% 19%;
+  --input: 270 6% 19%;
+  --ring: 18 93% 56%;
+  --card: 270 8% 12%;
+  --card-foreground: 40 100% 99%;
+  --card-border: 270 6% 19%;
+  --popover: 270 8% 12%;
+  --popover-foreground: 40 100% 99%;
+  --popover-border: 270 6% 19%;
+  --primary: 18 93% 56%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 207 16% 20%;
+  --secondary-foreground: 40 100% 99%;
+  --muted: 270 7% 17%;
+  --muted-foreground: 30 4% 68%;
+  --accent: 207 16% 20%;
+  --accent-foreground: 40 100% 99%;
   --destructive: 2 67% 55%;
   --destructive-foreground: 0 0% 98%;
-  --sidebar: 204 32% 9%;
-  --sidebar-foreground: 42 31% 93%;
-  --sidebar-border: 201 21% 20%;
-  --sidebar-primary: 29 93% 53%;
-  --sidebar-primary-foreground: 204 30% 12%;
-  --sidebar-accent: 199 24% 19%;
-  --sidebar-accent-foreground: 42 31% 93%;
-  --sidebar-ring: 29 93% 53%;
+  --sidebar: 270 9% 6%;
+  --sidebar-foreground: 40 100% 99%;
+  --sidebar-border: 270 6% 16%;
+  --sidebar-primary: 18 93% 56%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 207 16% 17%;
+  --sidebar-accent-foreground: 40 100% 99%;
+  --sidebar-ring: 18 93% 56%;
 }
 
 @layer base {
@@ -296,4 +295,189 @@ h1 { font: 600 clamp(30px, 3vw, 42px)/1.09 'Space Grotesk', sans-serif; letter-s
   .schedule-overview { gap: 5px; padding: 11px 9px; }
   .stat-label { font-size: 8px; }
   .stat-value { font-size: 12px; }
+}
+
+/* SlipLess field desk — cinematic charcoal framing, workmanlike light surfaces. */
+:root {
+  --ink: #211e23;
+  --charcoal: #151218;
+  --paper: #fffdfb;
+  --orange: #f86d26;
+  --steel: #3a5b68;
+  --line: #dedbd7;
+  --muted-ink: #69666a;
+  --app-font-sans: Inter, "Segoe UI", sans-serif;
+  --app-font-display: Montserrat, "Arial Narrow", "Segoe UI", sans-serif;
+}
+
+body { background: #f1efec; color: var(--ink); }
+.app-shell { grid-template-columns: 238px minmax(0, 1fr); }
+.rail {
+  background: var(--charcoal);
+  color: var(--paper);
+  padding: 28px 17px 22px;
+  border-right: 1px solid #302c32;
+}
+.brand { padding: 0 12px 36px; }
+.brand-name {
+  color: var(--paper);
+  font: 800 21px/1 var(--app-font-display);
+  letter-spacing: .035em;
+}
+.brand-caption { color: #aaa5a8; letter-spacing: 1.15px; }
+.rail-label { color: #aaa5a8; }
+.project-choice { color: #d1cccf; border-radius: 2px; }
+.project-choice:hover { background: #29252b; color: var(--paper); transform: translateX(2px); }
+.project-choice.active { background: #302a2a; color: #ff9863; box-shadow: inset 3px 0 var(--orange); }
+.rail-dot { border-radius: 0; background: #827b80; }
+.active .rail-dot { background: var(--orange); box-shadow: none; }
+.rail-bottom { border-color: #383239; }
+.prototype-status { color: #d0cace; }
+.status-live { background: #9baeb0; border-radius: 0; box-shadow: none; }
+.rail-footnote { color: #aaa3a8; }
+.workspace { max-width: 1600px; padding: 24px clamp(22px, 3.2vw, 52px) 50px; }
+.topbar { margin-bottom: 27px; }
+.breadcrumb { color: #706b71; }
+.crumb-current { color: var(--ink); }
+.offline-pill {
+  border-color: #c9c5c1; border-radius: 2px; color: #454148;
+  background: #f8f6f3; letter-spacing: .35px;
+}
+.offline-pill .status-live { background: #718b91; }
+.page-intro {
+  position: relative; isolation: isolate; overflow: hidden;
+  min-height: 210px; margin-bottom: 22px; padding: 27px 29px;
+  align-items: flex-end; color: var(--paper);
+  background: var(--charcoal);
+}
+.page-intro::before {
+  content: ""; position: absolute; z-index: -2; inset: 0 0 0 45%;
+  background-image: linear-gradient(90deg, #151218 0%, rgba(21,18,24,.73) 31%, rgba(21,18,24,.18) 100%), url('../../../attached_assets/generated_images/slipless-site-header.jpg');
+  background-size: cover; background-position: center 48%;
+}
+.page-intro::after {
+  content: ""; position: absolute; z-index: -1; inset: auto 0 0;
+  height: 3px; background: var(--orange);
+}
+.eyebrow { color: #ff9863; font: 600 10px var(--app-font-mono); letter-spacing: 1.25px; }
+.eyebrow:before { background: var(--orange); width: 22px; }
+h1 {
+  max-width: 630px; color: var(--paper);
+  font: 800 clamp(32px, 3vw, 43px)/1.03 var(--app-font-display);
+  letter-spacing: -.045em; margin: 12px 0 8px;
+}
+.page-intro p { color: #d0cace; font-size: 13px; }
+.project-meta { max-width: 490px; }
+.meta-chip {
+  border-color: rgba(255,253,251,.24); border-radius: 2px;
+  background: rgba(21,18,24,.78); color: #e8e3e5; font-size: 10px;
+  backdrop-filter: blur(3px);
+}
+.meta-chip strong { color: var(--paper); }
+.main-grid { gap: 16px; grid-template-columns: minmax(0, 1.2fr) minmax(310px, .8fr); }
+.column-stack { gap: 16px; }
+.panel {
+  background: var(--paper); border: 1px solid var(--line); border-radius: 2px;
+  box-shadow: 0 2px 9px rgba(33,30,35,.035);
+}
+.panel-head { padding: 18px 19px 14px; }
+.panel-kicker { color: #ad5227; font-size: 9px; letter-spacing: 1.1px; }
+.panel-title { color: var(--ink); font: 700 16px var(--app-font-display); letter-spacing: -.025em; }
+.panel-subtitle { color: #69666a; }
+.panel-body { padding: 0 19px 18px; }
+.section-tag {
+  border-radius: 2px; background: #f8e6dc; color: #8c3e1d;
+  font-weight: 600;
+}
+.schedule-overview { border-radius: 2px; background: #f1efec; }
+.stat-label { color: #6d686d; }
+.stat-value { color: var(--ink); font-family: var(--app-font-display); }
+.task-row { border-color: #e8e5e2; }
+.task-index { border-radius: 2px; color: #625d63; background: #efedeb; }
+.task-row.critical .task-index { color: #8f411f; background: #f8e6dc; }
+.task-name { color: #28252a; }
+.task-detail { color: #68646a; }
+.task-status { border-radius: 2px; background: #e8eeed; color: #3d5b61; }
+.task-status.at-risk { background: #fbe9df; color: #8f411f; }
+.task-day { color: #4d494f; }
+.critical-flag { color: #a84a20; }
+.event-panel { border-top: 3px solid var(--orange); }
+.event-text {
+  border-color: #ccc7c3; background: #faf9f7; border-radius: 2px; color: #28252a;
+}
+.event-text::placeholder { color: #767176; }
+.classify { color: #656167; }
+.classify b { color: #343037; }
+.button { border-radius: 2px; }
+.button-primary {
+  background: var(--orange); color: #241a17; padding: 11px 15px;
+  box-shadow: 0 2px 0 #c64c18;
+}
+.button-primary:hover { background: #ff8245; }
+.button-secondary { background: #e7eeef; color: #29434a; border-color: #cbd8da; }
+.button-quiet { color: #514c52; border-color: #c9c5c1; }
+.button-danger { background: #f7e8e2; color: #8c382a; border-color: #e8c9bd; }
+.text-button { color: #a4471d; }
+.demo-cases { border-color: #e8e5e2; }
+.demo-caption { color: #68646a; }
+.case-chip { border-color: #cfcbc7; color: #4f4a50; border-radius: 2px; }
+.case-chip:hover, .case-chip.selected { background: #fbe9df; border-color: #e9a17c; color: #873b1c; }
+.result-empty { color: #68646a; }
+.empty-mark { border-radius: 2px; color: #3a5b68; background: #e5ebec; }
+.result-empty h3 { color: #29262b; font: 700 14px var(--app-font-display); }
+.result-banner { background: #e8eeee; border-color: #d1dcdd; }
+.result-banner.warning { background: #fbe9df; border-color: #f0d1c1; }
+.result-banner.applied { background: #e5eeeb; border-color: #cbdad5; }
+.result-status { color: #35565c; }
+.warning .result-status { color: #903f1e; }
+.applied .result-status { color: #315c4a; }
+.result-title { color: #262329; font: 700 15px var(--app-font-display); }
+.result-summary { color: #5e5a60; }
+.confidence { color: #514d53; }
+.impact-stats { background: #f1efec; border-radius: 2px; }
+.impact-cell + .impact-cell { border-color: #d9d5d2; }
+.impact-cell .stat-value small { color: #625e63; }
+.change-title { color: #5f5a61; }
+.action-number { background: #f8e6dc; border-radius: 2px; color: #873b1c; }
+.action-copy { color: #514d53; }
+.action-copy strong { color: #29262b; }
+.affected-toggle { color: #a4471d; }
+.affected-list { background: #f1efec; border-radius: 2px; }
+.affected-task { color: #514d53; }
+.result-controls { border-color: #e8e5e2; }
+.disclaimer { background: #f2f0ed; border-radius: 2px; color: #57535a; }
+.disclaimer svg { color: #a94c22; }
+.question-chip { border-color: #d1cdca; background: #f6f4f2; color: #514d53; border-radius: 2px; }
+.question-chip:hover { color: #873b1c; border-color: #e9a17c; background: #fbe9df; }
+.chat-message { border-radius: 2px; color: #514d53; background: #f1efec; }
+.chat-message.user { background: #e8eeee; color: #29464c; }
+.chat-message strong { color: #29262b; }
+.chat-label { color: #a4471d; }
+.chat-input { border-color: #cfcbc7; background: #faf9f7; border-radius: 2px; color: #29262b; }
+.chat-send { background: #252127; color: var(--paper); border-radius: 2px; }
+.chat-send:hover { background: var(--steel); }
+.edit-toggle { color: #403b42; }
+.edit-content { border-color: #e5e1de; }
+.edit-note { color: #615d63; }
+.edit-task input, .edit-task select { border-color: #cfcbc7; background: #faf9f7; border-radius: 2px; color: #343037; }
+.edit-label { color: #625e63; }
+.boundary { border-color: #d9d5d2; color: #57535a; }
+.boundary svg { color: #a94c22; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline: 3px solid rgba(248,109,38,.48); outline-offset: 2px;
+}
+@media (max-width: 980px) {
+  .app-shell { grid-template-columns: 205px minmax(0,1fr); }
+  .page-intro { padding: 24px; }
+}
+@media (max-width: 700px) {
+  .rail { padding: 12px 15px; }
+  .brand { padding: 0; }
+  .brand-name { font-size: 17px; }
+  .page-intro { min-height: 0; padding: 24px 19px; }
+  .page-intro::before { inset: 0; background-image: linear-gradient(90deg, rgba(21,18,24,.96), rgba(21,18,24,.69)), url('../../../attached_assets/generated_images/slipless-site-header.jpg'); }
+  .project-meta { justify-content: flex-start; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }

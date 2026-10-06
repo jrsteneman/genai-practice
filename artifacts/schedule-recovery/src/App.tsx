@@ -7,7 +7,7 @@ import NotFound from '@/pages/not-found';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import {
   AlertTriangle, ArrowDownRight, BadgeCheck, CalendarDays, Check,
-  ChevronDown, ChevronRight, CircleHelp, Clock3, HardHat, Info, Layers3,
+  ChevronDown, ChevronRight, CircleHelp, Clock3, Info, Layers3,
   Pencil, RotateCcw, Send, ShieldCheck, Sparkles, Users, Wrench, X,
 } from 'lucide-react';
 
@@ -188,8 +188,7 @@ function Home() {
     <div className="app-shell">
       <aside className="rail">
         <div className="brand">
-          <div className="brand-mark"><HardHat size={19} strokeWidth={2.3} /></div>
-          <div><div className="brand-name">SiteShift</div><div className="brand-caption">Field schedule recovery</div></div>
+          <div><div className="brand-name">SlipLess</div><div className="brand-caption">Field schedule recovery</div></div>
         </div>
         <div className="rail-label">Demo projects</div>
         <nav className="project-list" aria-label="Sample projects">
