@@ -67,10 +67,114 @@ const initialProjects: Project[] = [
 
 const dayLabel = (day: number) => `Day ${day}`;
 const finishDay = (tasks: ScheduleTask[]) => tasks.reduce((max, task) => Math.max(max, task.startDay + task.duration - 1), 0);
+
+const normalizeWords = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const containsPhrase = (text: string, phrase: string) => {
+  const haystack = ` ${normalizeWords(text)} `;
+  const needle = ` ${normalizeWords(phrase)} `;
+  return needle.trim().length > 0 && haystack.includes(needle);
+};
+
+const equipmentFamilies = [
+  { label: 'crane', terms: ['tower crane', 'mobile crane', 'crane'], taskTerms: ['crane'] },
+  { label: 'forklift', terms: ['forklift', 'fork truck'], taskTerms: ['forklift', 'fork truck'] },
+  { label: 'lift', terms: ['scissor lift', 'material lift', 'man lift', 'boom lift', 'telehandler', 'lift'], taskTerms: ['scissor lift', 'material lift', 'man lift', 'boom lift', 'telehandler', 'lift'] },
+  { label: 'excavator', terms: ['mini excavator', 'excavator', 'digger'], taskTerms: ['excavator'] },
+  { label: 'pump', terms: ['concrete pump', 'pump'], taskTerms: ['pump'] },
+  { label: 'truck', terms: ['dump truck', 'flatbed', 'truck'], taskTerms: ['truck', 'flatbed'] },
+  { label: 'trencher', terms: ['trencher'], taskTerms: ['trencher'] },
+  { label: 'mast climber', terms: ['mast climber'], taskTerms: ['mast climber'] },
+  { label: 'total station', terms: ['total station'], taskTerms: ['total station'] },
+];
+
+function findEquipmentTasks(project: Project, event: string) {
+  const equipmentNames = [...new Set(project.tasks.map(task => task.equipment))];
+  const exactNames = equipmentNames.filter(name => containsPhrase(event, name));
+  const mentionedTerms = equipmentFamilies
+    .flatMap(family => family.terms)
+    .filter(term => containsPhrase(event, term))
+    .sort((a, b) => b.length - a.length);
+
+  if (exactNames.length) {
+    return {
+      tasks: project.tasks.filter(task => exactNames.includes(task.equipment)),
+      label: exactNames.join(' / '),
+      exact: true,
+    };
+  }
+
+  const matchingFamilies = equipmentFamilies.filter(family => family.terms.some(term => containsPhrase(event, term)));
+  const tasks = project.tasks.filter(task =>
+    matchingFamilies.some(family => family.taskTerms.some(term => containsPhrase(task.equipment, term))),
+  );
+  const matchedNames = [...new Set(tasks.map(task => task.equipment))];
+  const eventTerm = mentionedTerms[0];
+  return {
+    tasks,
+    label: matchedNames.length === 1
+      ? matchedNames[0]
+      : matchedNames.length > 1
+        ? eventTerm ?? matchedNames.join(' / ')
+        : eventTerm
+          ? eventTerm.replace(/\b\w/g, letter => letter.toUpperCase())
+          : 'the named equipment',
+    exact: false,
+  };
+}
+
+function getAffectedTasks(project: Project, rootTasks: ScheduleTask[]) {
+  const affectedIds = new Set(rootTasks.map(task => task.id));
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const task of project.tasks) {
+      if (!affectedIds.has(task.id) && task.dependencies.some(id => affectedIds.has(id))) {
+        affectedIds.add(task.id);
+        changed = true;
+      }
+    }
+  }
+  return project.tasks.filter(task => affectedIds.has(task.id));
+}
+
+const laborStopWords = new Set([
+  'crew', 'team', 'worker', 'workers', 'labor', 'labour', 'personnel', 'staff',
+  'down', 'out', 'short', 'shortage', 'sick', 'absent', 'unavailable', 'available',
+  'today', 'tomorrow', 'the', 'a', 'an', 'is', 'are', 'was', 'were', 'with',
+  'two', 'one', 'three', 'four', 'from', 'to', 'for', 'on', 'at', 'shift',
+  'move', 'reassign', 'assign', 'protect', 'milestone', 'until', 'day',
+]);
+
+function findLaborTasks(project: Project, event: string) {
+  const eventTerms = new Set(normalizeWords(event).split(' ').filter(term => term && !laborStopWords.has(term)));
+  const aliases = [
+    { trigger: ['carpenter', 'carpenters'], target: ['framing'] },
+    { trigger: ['ironworker', 'ironworkers'], target: ['rebar'] },
+    { trigger: ['roofer', 'roofers'], target: ['roof', 'sheathing'] },
+    { trigger: ['mason', 'masons'], target: ['masonry'] },
+    { trigger: ['electrician', 'electricians', 'plumber', 'plumbers'], target: ['mep', 'roughin'] },
+    { trigger: ['surveyor', 'surveyors'], target: ['survey', 'layout'] },
+  ];
+  for (const alias of aliases) {
+    if (alias.trigger.some(term => eventTerms.has(term))) alias.target.forEach(term => eventTerms.add(term));
+  }
+
+  const scores = project.tasks.map(task => {
+    const taskTerms = new Set(normalizeWords(`${task.name} ${task.crew}`).split(' '));
+    return { task, score: [...eventTerms].filter(term => taskTerms.has(term)).length };
+  });
+  const bestScore = Math.max(0, ...scores.map(item => item.score));
+  return bestScore === 0 ? [] : scores.filter(item => item.score === bestScore).map(item => item.task);
+}
+
 const classify = (text: string): DisruptionType => {
-  const t = text.toLowerCase();
-  if (/crew|worker|labor|labour|carpenter|operator|sick|absen|short|staff|personnel/.test(t)) return 'labor';
-  if (/crane|lift|excavator|equipment|machine|forklift|pump|truck|broken|down|inspection|repair/.test(t)) return 'equipment';
+  const t = normalizeWords(text);
+  const equipmentMentioned = equipmentFamilies.some(family => family.terms.some(term => containsPhrase(t, term)))
+    || /\b(equipment|machine|tool)\b/.test(t);
+  const equipmentFailure = /\b(down|out|broken|broke|failed|failure|unavailable|inspection|repair|maintenance|offline|outage)\b/.test(t);
+  if (equipmentMentioned && equipmentFailure) return 'equipment';
+  if (/\b(crew|worker|labor|labour|carpenter|operator|sick|absent|short|staff|personnel|electrician|ironworker|roofer|mason)\b/.test(t)) return 'labor';
+  if (equipmentMentioned) return 'equipment';
   return 'other';
 };
 
@@ -84,28 +188,115 @@ function buildRecommendation(project: Project, event: string): Recommendation {
   if (type === 'other') {
     return { ...common, summary: 'This event needs a schedule connection', actions: [], afterFinish: before, daysSaved: 0, affectedTaskIds: [], confidence: 0, kind: 'unsupported' };
   }
-  if (project.id === 'labor' && type === 'labor') {
+
+  if (type === 'equipment') {
+    const equipment = findEquipmentTasks(project, event);
+    if (!equipment.tasks.length) {
+      return {
+        ...common,
+        summary: `No scheduled task lists ${equipment.label}`,
+        actions: [],
+        afterFinish: before,
+        daysSaved: 0,
+        affectedTaskIds: [],
+        confidence: 0,
+        disclaimer: `${equipment.label} does not match equipment assigned to a task in this schedule. Add it to a task or name a listed machine before estimating its impact.`,
+        kind: 'unsupported',
+      };
+    }
+
+    const affected = getAffectedTasks(project, equipment.tasks);
+    const directIds = new Set(equipment.tasks.map(task => task.id));
+    const downstream = affected.filter(task => !directIds.has(task.id));
+    const firstAffectedDay = Math.min(...equipment.tasks.map(task => task.startDay));
+    const availableTask = project.tasks
+      .filter(task => !affected.some(item => item.id === task.id) && task.status === 'Ready' && task.startDay >= firstAffectedDay)
+      .sort((a, b) => a.startDay - b.startDay)[0];
+    const criticalWorkAffected = affected.some(task => task.criticality === 'critical');
+    const durationMatch = event.match(/\b(\d{1,2})\s+days?\b/i);
+    const modeledHold = durationMatch ? Math.min(5, Math.max(1, Number(durationMatch[1]))) : 1;
+    const after = before + (criticalWorkAffected ? modeledHold : 0);
+    const directTaskNames = equipment.tasks.map(task => task.name).join('; ');
+    const dependentNames = downstream.slice(0, 2).map(task => task.name).join(' and ');
+    const actions = [
+      {
+        taskId: equipment.tasks[0].id,
+        text: `Hold or resequence ${directTaskNames} while the ${equipment.label} is unavailable. Confirm the repair window and whether an approved alternate can safely do this work.`,
+      },
+      ...(availableTask ? [{
+        taskId: availableTask.id,
+        text: `Use the downtime to advance ${availableTask.name} with its listed ${availableTask.equipment}, if that crew and access are available.`,
+      }] : []),
+      {
+        taskId: downstream[0]?.id ?? equipment.tasks[0].id,
+        text: downstream.length
+          ? `After the ${equipment.label} is cleared, restart ${dependentNames} in dependency order and recheck ${project.milestone} against the modeled ${modeledHold}-day hold.`
+          : `This equipment is not on a listed critical-path task. Recheck ${project.milestone} after it is restored; no finish-date slip is modeled.`,
+      },
+    ];
+    return {
+      ...common,
+      summary: `Resequence work affected by the ${equipment.label} outage`,
+      actions,
+      afterFinish: after,
+      daysSaved: 0,
+      affectedTaskIds: affected.map(task => task.id),
+      confidence: equipment.exact ? 72 : 58,
+      kind: 'plan',
+    };
+  }
+
+  if (project.id === 'labor' && type === 'labor' && /north framing|two carpenters|carpenter/.test(event.toLowerCase())) {
     return { ...common, summary: 'Rebalance framing crews to hold dry-in', actions: [
       { taskId: 'frame', text: 'Move two available carpenters from interior wall framing to North wing framing for the first shift.' },
       { taskId: 'interior', text: 'Start interior walls on Day 6 with the remaining interior crew; keep its material lift reservation.' },
       { taskId: 'sheath', text: 'Keep roof sheathing staged for Day 7; dry-in remains on the current milestone path.' },
     ], afterFinish: before, daysSaved: 2, affectedTaskIds: ['frame', 'interior', 'sheath'], confidence: 86, kind: 'plan' };
   }
-  if (project.id === 'equipment' && type === 'equipment') {
-    return { ...common, summary: 'Work around the crane inspection window', actions: [
-      { taskId: 'deliver', text: 'Use the site forklift for staged rebar bundles where the lift plan and load rating allow; defer crane-only form panels until inspection clears.' },
-      { taskId: 'forms', text: 'Move edge-form work to Day 4 and use the freed crew on Level 2 masonry punch during the crane hold.' },
-      { taskId: 'rebar', text: 'Resume the planned crane pick sequence on Day 5; Level 4 pour stays on Day 9.' },
-    ], afterFinish: before, daysSaved: 1, affectedTaskIds: ['deliver', 'forms', 'rebar', 'pour'], confidence: 78, kind: 'plan' };
-  }
-  const relevant = type === 'labor'
-    ? project.tasks.filter(t => /crew|team|labor|worker/i.test(`${t.crew} ${event}`)).slice(0, 2)
-    : project.tasks.filter(t => /crane|lift|excavator|pump|forklift/i.test(`${t.equipment} ${event}`)).slice(0, 2);
-  if (!relevant.length) return { ...common, summary: 'Not enough schedule detail to model this event', actions: [], afterFinish: before, daysSaved: 0, affectedTaskIds: [], confidence: 0, kind: 'unsupported' };
-  return { ...common, summary: 'Review the affected work before resequencing', actions: [
-    { taskId: relevant[0].id, text: `Confirm availability and safe access for ${relevant[0].name} before the next shift.` },
-    { taskId: relevant[0].id, text: 'The demo cannot verify crew capacity or downstream constraints for this custom event. Check the milestone path with the foreman.' },
-  ], afterFinish: before + 1, daysSaved: 0, affectedTaskIds: [...new Set(relevant.map(t => t.id))], confidence: 42, kind: 'plan' };
+
+  const matchedCrewTasks = findLaborTasks(project, event);
+  const targetTasks = matchedCrewTasks.length
+    ? matchedCrewTasks
+    : [project.tasks.find(task => task.status === 'At risk') ?? project.tasks.find(task => task.criticality === 'critical') ?? project.tasks[0]];
+  const affected = getAffectedTasks(project, targetTasks);
+  const targetIds = new Set(targetTasks.map(task => task.id));
+  const downstream = affected.filter(task => !targetIds.has(task.id));
+  const availableTask = project.tasks.find(task => !affected.some(item => item.id === task.id) && task.status === 'Ready');
+  const crewNames = [...new Set(targetTasks.map(task => task.crew))].join(' / ');
+  const taskNames = targetTasks.map(task => task.name).join('; ');
+  const criticalWorkAffected = affected.some(task => task.criticality === 'critical');
+  const after = before + (criticalWorkAffected ? 1 : 0);
+  const uncertainCrew = matchedCrewTasks.length === 0;
+  return {
+    ...common,
+    summary: uncertainCrew ? `Check labor coverage on ${taskNames}` : `Resequence work for the ${crewNames} staffing change`,
+    actions: [
+      {
+        taskId: targetTasks[0].id,
+        text: uncertainCrew
+          ? `The event does not name a crew. ${taskNames} is the schedule's current at-risk work; confirm which crew is affected before changing assignments.`
+          : `Confirm the ${crewNames} headcount for ${taskNames}; hold or resequence it if qualified workers are not available.`,
+      },
+      ...(availableTask ? [{
+        taskId: availableTask.id,
+        text: `Keep ${availableTask.name} moving with its listed ${availableTask.crew}, if that crew is available; do not assume workers can transfer trades.`,
+      }] : []),
+      {
+        taskId: downstream[0]?.id ?? targetTasks[0].id,
+        text: downstream.length
+          ? `Recheck ${downstream.slice(0, 2).map(task => task.name).join(' and ')} after the staffing gap is resolved; those tasks depend on this work.`
+          : `No downstream task is listed as dependent on this activity. Recheck the ${project.milestone} after staffing is confirmed.`,
+      },
+    ],
+    afterFinish: after,
+    daysSaved: 0,
+    affectedTaskIds: affected.map(task => task.id),
+    confidence: uncertainCrew ? 36 : 62,
+    disclaimer: uncertainCrew
+      ? 'The event does not identify a crew, so the preview uses the schedule’s current at-risk task as a prompt for review. This is not a verified staffing plan.'
+      : common.disclaimer,
+    kind: 'plan',
+  };
 }
 
 function answerQuestion(question: string, project: Project, event: string, recommendation: Recommendation | null) {
