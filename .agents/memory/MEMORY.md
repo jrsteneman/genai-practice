@@ -1,0 +1,1 @@
+- [Scheduling boundaries](scheduling-boundaries.md) — deterministic dates, explicit project-day timing, foreman acceptance, and honest AI deferral.

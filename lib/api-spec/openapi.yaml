@@ -11,6 +11,44 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /schedule/analyze:
+    post:
+      operationId: analyzeSchedule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AnalysisInput" }
+      responses:
+        "200":
+          description: Deterministic schedule analysis
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScheduleAnalysis" }
+        "400":
+          description: Invalid schedule or input
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScheduleError" }
+  /schedule/question:
+    post:
+      operationId: askSchedule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/QuestionInput" }
+      responses:
+        "200":
+          description: Grounded answer
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScheduleAnswer" }
+        "400":
+          description: Invalid schedule or question
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScheduleError" }
   /healthz:
     get:
       operationId: healthCheck
@@ -26,6 +64,150 @@ paths:
                 $ref: "#/components/schemas/HealthStatus"
 components:
   schemas:
+    ProjectTask:
+      type: object
+      required: [id, name, startDay, duration, dependencies, crew, equipment]
+      properties:
+        id: { type: string, minLength: 1, maxLength: 80 }
+        name: { type: string, minLength: 1, maxLength: 160 }
+        startDay: { type: integer, minimum: 1, maximum: 10000 }
+        duration: { type: integer, minimum: 1, maximum: 1000 }
+        interruptions:
+          description: Accepted absolute nonworking windows; duration remains working days, not elapsed days.
+          type: array
+          maxItems: 100
+          items: { $ref: "#/components/schemas/DayWindow" }
+        dependencies:
+          type: array
+          maxItems: 100
+          items: { type: string, minLength: 1, maxLength: 80 }
+        crew: { type: string, minLength: 1, maxLength: 160 }
+        equipment: { type: string, minLength: 1, maxLength: 160 }
+    MilestoneMapping:
+      type: object
+      required: [name, taskIds, targetDay]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 160 }
+        taskIds:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items: { type: string, minLength: 1, maxLength: 80 }
+        targetDay: { type: integer, minimum: 1, maximum: 10000 }
+    ScheduleSnapshot:
+      type: object
+      required: [tasks, milestone]
+      properties:
+        tasks:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items: { $ref: "#/components/schemas/ProjectTask" }
+        milestone: { $ref: "#/components/schemas/MilestoneMapping" }
+    ConfirmedTiming:
+      type: object
+      required: [startDay, confirmed]
+      properties:
+        startDay: { type: integer, minimum: 1, maximum: 10000 }
+        confirmed: { type: boolean, enum: [true] }
+    AnalysisInput:
+      type: object
+      required: [schedule, disruption]
+      properties:
+        schedule: { $ref: "#/components/schemas/ScheduleSnapshot" }
+        disruption: { type: string, minLength: 1, maxLength: 2000 }
+        confirmedTiming: { $ref: "#/components/schemas/ConfirmedTiming" }
+    QuestionInput:
+      type: object
+      required: [context, question]
+      properties:
+        context: { $ref: "#/components/schemas/AnalysisInput" }
+        question: { type: string, minLength: 1, maxLength: 500 }
+        recentQuestions:
+          type: array
+          maxItems: 4
+          items: { type: string, maxLength: 500 }
+    HoldConstraint:
+      type: object
+      required: [kind, target, taskIds, duration, startDay, endDay, releaseDay]
+      properties:
+        kind: { type: string, enum: [equipment, task, crew] }
+        target: { type: string }
+        taskIds:
+          type: array
+          items: { type: string }
+        duration: { type: integer }
+        startDay: { type: [integer, "null"] }
+        endDay: { type: [integer, "null"] }
+        releaseDay: { type: [integer, "null"] }
+    DayWindow:
+      type: object
+      required: [startDay, endDay]
+      properties:
+        startDay: { type: integer, minimum: 1, maximum: 1000000 }
+        endDay: { type: integer, minimum: 1, maximum: 1000000 }
+    TaskDateChange:
+      type: object
+      required: [taskId, name, beforeStart, beforeFinish, afterStart, afterFinish, afterDuration, afterInterruptions]
+      properties:
+        taskId: { type: string }
+        name: { type: string }
+        beforeStart: { type: integer }
+        beforeFinish: { type: integer }
+        afterStart: { type: integer }
+        afterFinish: { type: integer }
+        afterDuration:
+          description: Working duration only. Outage days are retained separately, never added to work.
+          type: integer
+        afterInterruptions:
+          type: array
+          maxItems: 100
+          items: { $ref: "#/components/schemas/DayWindow" }
+    ScheduleAnalysis:
+      type: object
+      required: [summary, status, mode, modeDetail, constraints, changes, changedTaskIds, affectedTaskIds, assumptions, clarifications, beforeFinish, afterFinish, milestoneName, milestoneTarget, beforeMilestone, afterMilestone, convention]
+      properties:
+        summary: { type: string }
+        status: { type: string, enum: [ready, clarification, no-impact] }
+        mode: { type: string, enum: [rules-based] }
+        modeDetail: { type: string }
+        constraints:
+          type: array
+          items: { $ref: "#/components/schemas/HoldConstraint" }
+        changes:
+          type: array
+          items: { $ref: "#/components/schemas/TaskDateChange" }
+        changedTaskIds:
+          type: array
+          items: { type: string }
+        affectedTaskIds:
+          type: array
+          items: { type: string }
+        assumptions:
+          type: array
+          items: { type: string }
+        clarifications:
+          type: array
+          items: { type: string }
+        beforeFinish: { type: integer }
+        afterFinish: { type: [integer, "null"] }
+        milestoneName: { type: string }
+        milestoneTarget: { type: integer }
+        beforeMilestone: { type: integer }
+        afterMilestone: { type: [integer, "null"] }
+        convention: { type: string }
+    ScheduleAnswer:
+      type: object
+      required: [answer, mode, modeDetail]
+      properties:
+        answer: { type: string }
+        mode: { type: string, enum: [rules-based] }
+        modeDetail: { type: string }
+    ScheduleError:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
     HealthStatus:
       type: object
       properties:
