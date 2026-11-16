@@ -16,6 +16,7 @@ import {
 import { initialProjects } from "../../schedule-recovery/src/projects";
 import { applyProposal } from "../../schedule-recovery/src/proposal";
 import type { AnalysisInput } from "@workspace/api-zod";
+import { naturalStarts, unsafeStarts } from "./natural-start-cases";
 const base = initialProjects[0];
 function input(disruption = base.event): AnalysisInput {
   return {
@@ -23,6 +24,132 @@ function input(disruption = base.event): AnalysisInput {
     disruption,
   };
 }
+
+function harborInput(disruption: string): AnalysisInput {
+  const p = initialProjects[1];
+  return {
+    schedule: structuredClone({ tasks: p.tasks, milestone: p.milestone }),
+    disruption,
+  };
+}
+
+test("Harbor Point natural starts use inclusive availability and apply idempotently", () => {
+  for (const phrase of naturalStarts) {
+    const i = harborInput(phrase), original = structuredClone(i);
+    const interpreted = interpret(i);
+    assert.deepEqual(interpreted.clarifications, [], phrase);
+    assert.deepEqual(interpreted.constraints, [{
+      kind: "crew", target: "Form crew B", taskIds: ["deck"],
+      restriction: "start-not-before", earliestStartDay: 3,
+      duration: null, startDay: null, endDay: null, releaseDay: 3,
+    }], phrase);
+    const r = analyze(i);
+    assert.equal(r.status, "ready", phrase);
+    assert.deepEqual(r.changes.map((c) => [c.taskId, c.afterStart, c.afterFinish]), [
+      ["deck", 3, 3], ["deliver", 4, 4], ["forms", 5, 6],
+      ["rebar", 7, 8], ["pour", 9, 9],
+    ]);
+    assert.equal(r.beforeMilestone, 8);
+    assert.equal(r.afterMilestone, 9);
+    assert.equal(r.afterFinish, 9);
+    assert.match(r.assumptions.join(" "), /Form crew B: availability begins on Day 3/);
+    assert.match(r.assumptions.join(" "), /baseline dates and dependencies/);
+    assert.match(r.assumptions.join(" "), /not a guaranteed exact start/);
+    assert.deepEqual(i, original);
+    i.schedule.tasks = applyProposal(i.schedule.tasks, r);
+    for (const t of i.schedule.tasks) {
+      const before = original.schedule.tasks.find((b) => b.id === t.id)!;
+      assert.equal(t.duration, before.duration);
+      assert.equal(t.crew, before.crew);
+      assert.equal(t.equipment, before.equipment);
+      assert.deepEqual(t.dependencies, before.dependencies);
+      assert.deepEqual(t.interruptions ?? [], []);
+    }
+    assert.deepEqual(i.schedule.tasks.find((t) => t.id === "masonry"),
+      original.schedule.tasks.find((t) => t.id === "masonry"));
+    assert.equal(analyze(i).status, "no-impact");
+  }
+});
+
+test("natural starts do not pull later baseline or dependency-bound work forward", () => {
+  for (const phrase of [
+    "Form crew B starts Day 1", "Form crew A starts Day 2",
+    "Tower crane begins Day 1", "Level 4 edge forms starts Day 2",
+  ]) assert.equal(analyze(harborInput(phrase)).status, "no-impact", phrase);
+  const i = harborInput("Form crew B starts Day 3");
+  i.schedule.tasks.push({
+    id: "second", name: "Separate formwork", startDay: 1, duration: 1,
+    dependencies: [], crew: "Form crew B", equipment: "Other forklift",
+  }, {
+    id: "later", name: "Later formwork", startDay: 10, duration: 1,
+    dependencies: ["pour"], crew: "Form crew B", equipment: "Hand tools",
+  });
+  const r = analyze(i);
+  assert.deepEqual(r.constraints[0].taskIds, ["deck", "second", "later"]);
+  assert.equal(r.changes.find((c) => c.taskId === "second")!.afterStart, 3);
+  assert.ok(!r.changedTaskIds.includes("later"));
+  // A delayed predecessor, not the stated availability, controls this start.
+  i.disruption += "; Form crew A starts Day 8";
+  const later = analyze(i).changes.find((c) => c.taskId === "later")!;
+  assert.equal(later.afterStart, 13);
+  assert.ok(later.afterStart > 3);
+});
+
+test("positive start restrictions retain full resource scope when naming an effect", () => {
+  const i = harborInput("Tower crane will start Day 5 affecting Level 4 edge forms");
+  const r = analyze(i);
+  assert.equal(r.status, "ready");
+  assert.deepEqual(r.constraints[0].taskIds, ["deliver", "forms", "rebar"]);
+  assert.equal(r.changes.find((c) => c.taskId === "deliver")!.afterStart, 5);
+  i.disruption = "Level 4 edge forms starts Day 5 using Tower crane";
+  assert.equal(analyze(i).status, "clarification");
+});
+
+test("natural starts preserve accepted pauses and working durations", () => {
+  const i = input("Telehandler unavailable over Days 5–6");
+  i.schedule.tasks = applyProposal(i.schedule.tasks, analyze(i));
+  i.disruption = "Interior crew starts on Day 5";
+  i.schedule.tasks = applyProposal(i.schedule.tasks, analyze(i));
+  const frame = i.schedule.tasks.find((t) => t.id === "frame")!;
+  assert.deepEqual(frame.interruptions, [{ startDay: 5, endDay: 6 }]);
+  assert.equal(frame.duration, 3);
+  assert.equal(taskFinish(frame), 8);
+  assert.equal(analyze(i).status, "no-impact");
+  i.disruption = "North wing framing is starting on Day 5";
+  const r = analyze(i);
+  assert.equal(r.changes.find((c) => c.taskId === "frame")!.afterStart, 7);
+  assert.equal(r.changes.find((c) => c.taskId === "frame")!.afterDuration, 3);
+});
+
+test("unsafe natural starts clarify without fabricating dates", () => {
+  for (const phrase of unsafeStarts) {
+    const r = analyze(harborInput(phrase));
+    assert.equal(r.status, "clarification", phrase);
+    assert.ok(r.clarifications.length, phrase);
+    assert.deepEqual(r.changes, [], phrase);
+    assert.equal(r.afterFinish, null, phrase);
+    assert.throws(() => applyProposal(harborInput(phrase).schedule.tasks, r));
+  }
+  const i = harborInput(naturalStarts[0]);
+  i.confirmedTiming = { startDay: 4, confirmed: true };
+  assert.equal(analyze(i).status, "clarification");
+  i.confirmedTiming.startDay = 3;
+  assert.equal(analyze(i).status, "ready");
+});
+
+test("outages containing starting-on wording still need a full outage window", () => {
+  for (const phrase of [
+    "Form crew B unavailable for 2 days starting on Day 3",
+    "Form crew B outage for two days starting on Day three",
+  ]) {
+    const r = analyze(harborInput(phrase));
+    assert.equal(r.status, "no-impact", phrase); // deck already finished Day 1
+    assert.equal(r.constraints[0].restriction, "outage");
+    assert.equal(r.constraints[0].duration, 2);
+    assert.equal(r.constraints[0].startDay, 3);
+    assert.equal(r.constraints[0].endDay, 4);
+  }
+});
 
 test("Cedar Ridge: absolute equipment window, float, milestone vs project finish; analysis is pure", () => {
   const i = input(),

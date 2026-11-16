@@ -154,12 +154,22 @@ export function interpret(input: AnalysisInput) {
       .replace(/[’']/g, "'")
       .replace(/\bcan'?t\b/g, "cannot")
       .replace(/\bwon't\b/g, "will not")
-      .replace(/(\d)-day/g, "$1 day");
+      .replace(/(\d)-day/g, "$1 day")
+      .replace(/\s+/g, " ")
+      .trim();
+    // Match an asserted start, not an outage's "starting on Day ..." modifier.
+    // The strict subject/tail checks below still reject uncertainty and negation.
+    const positiveStarts = [
+      ...text.matchAll(
+        /\b(?:starts|begins|will\s+(?:start|begin)|is\s+(?:starting|beginning))\s+(?:on\s+)?(?:project\s+)?day\s+(\d+)\b/g,
+      ),
+    ];
     const earliestMatches = [
       ...text.matchAll(
         /\b(?:(?:cannot|can not|will not|may not)\s+(?:start|begin)\s+(?:until|before)|(?:not|no)\s+(?:start(?:ing)?|begin(?:ning)?)\s+before|available\s+(?:starting|from))\s+(?:project\s+)?day\s+(\d+)\b/g,
       ),
-    ];
+      ...positiveStarts,
+    ].sort((a, b) => a.index! - b.index!);
     const earliestDay = earliestMatches.length
       ? Number(earliestMatches[0][1])
       : null;
@@ -177,7 +187,7 @@ export function interpret(input: AnalysisInput) {
       /\b(not|never|no longer|isn['’]t|is not|won['’]t|will not)\s+(?:be\s+|on\s+|a\s+|an\s+)*(?:down|unavailable|held|hold|out|delayed|broken|outage)\b/i.test(
         clause,
       ) || /\bno\s+(?:equipment\s+)?(?:outage|hold|delay)\b/i.test(clause);
-    if (negative) {
+    if (negative && !positiveStarts.length) {
       [...equipment, ...crews, ...tasks.map((t) => t.name)]
         .filter((name) => has(clause, name))
         .forEach((name) => negatedTargets.add(name));
@@ -202,7 +212,7 @@ export function interpret(input: AnalysisInput) {
     if (!disruption && earliestDay === null) {
       if (!/\b(coffee|lunch|snack|catering|break.room)\b/i.test(clause))
         clarifications.push(
-          "Describe a hold or unavailability window for a listed task, crew, or equipment.",
+          'Name a listed task, crew, or equipment with a clear start restriction such as “Form crew B starts on Day 3”, or provide a full project-day outage window.',
         );
       continue;
     }
@@ -243,7 +253,7 @@ export function interpret(input: AnalysisInput) {
       ).test(norm(clause)) ||
       (earliestDay !== null &&
         new RegExp(
-          `\\b${norm(name).replace(/ /g, "\\s+")}\\s+(?:(?:is|will|be|the)\\s+)*(?:cannot|can t|can not|will not|may not|available)\\b`,
+          `\\b${norm(name).replace(/ /g, "\\s+")}\\s+(?:(?:is|will|be|the)\\s+)*(?:cannot|can t|can not|will not|may not|available|starts|begins|start|begin|starting|beginning)\\b`,
         ).test(norm(text)));
     const outageEquipment = exact.filter(explicitOutage);
     const outageCrews = exactCrews.filter(explicitOutage);
@@ -334,12 +344,12 @@ export function interpret(input: AnalysisInput) {
           input.confirmedTiming.startDay !== earliestDay)
       ) {
         clarifications.push(
-          "Provide one unambiguous earliest-start project day (1–10000) for one exact task or resource. Separate outages from start restrictions and resolve conflicting timing.",
+          "Provide one definite, non-negated earliest-start project day (1–10000) for one exact task or resource. Exact-date overrides are not supported. Separate outages from start restrictions and resolve conflicting timing.",
         );
         continue;
       }
       assumptions.push(
-        `Earliest start Day ${earliestDay} is inclusive: work may begin on Day ${earliestDay}. This restricts starts only, not work already in progress; no outage or extra working duration is inferred.`,
+        `${targets[0].target}: availability begins on Day ${earliestDay} (inclusive earliest start). Work may begin on Day ${earliestDay} or later; baseline dates and dependencies still govern actual starts, and existing later starts are not pulled forward. This is not a guaranteed exact start, an interruption, or extra working duration.`,
       );
       constraints.push({
         ...targets[0],

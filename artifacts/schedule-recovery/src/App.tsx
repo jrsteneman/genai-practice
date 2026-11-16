@@ -579,7 +579,7 @@ export default function App() {
                         <span>
                           {c.target}:{" "}
                           {c.restriction === "start-not-before"
-                            ? `earliest start Day ${c.earliestStartDay} (inclusive). Starts only; not an interruption or added work.`
+                            ? `earliest start Day ${c.earliestStartDay} (inclusive). Availability from this day, not a guaranteed exact start. Baseline dates and dependencies may require later starts. Not an interruption or added work.`
                             : `${c.duration}-day hold. ${
                                 c.startDay === null
                                   ? "Start unconfirmed"

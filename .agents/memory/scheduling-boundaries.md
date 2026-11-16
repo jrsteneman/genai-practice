@@ -26,6 +26,12 @@ Treat “cannot start until Day 4” and equivalent explicit availability langua
 
 **How to apply:** Restrict planned starts on every assignment of an identified resource, retain working durations and existing absolute interruptions, and clarify ambiguous release language rather than infer an outage.
 
+Ordinary definite start wording, such as “Form crew B starts on Day 3,” means inclusive availability from that day, not a guaranteed exact start.
+
+**Why:** The user expects natural positive start phrases to work without overriding existing later dates or dependencies. An outage's “starting on Day 3” modifier must still describe a full outage window, not become availability.
+
+**How to apply:** Use the same start-not-before meaning as explicit availability. Explain the interpretation visibly; clarify negated, tentative, exact-date, and contradictory wording rather than silently changing its meaning.
+
 Do not narrow an explicit resource outage to a task named as an effect, and do not equate reduced staffing with a complete stoppage.
 
 **Why:** A resource can serve additional scheduled tasks even when the user names just one affected activity; partial crew headcount alone cannot establish lost productivity or a work hold.
