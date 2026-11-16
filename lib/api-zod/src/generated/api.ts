@@ -74,6 +74,8 @@ export const AnalyzeScheduleBody = zod.object({
 }).optional()
 })
 
+export const analyzeScheduleResponseConstraintsItemEarliestStartDayMax = 10000;
+
 export const analyzeScheduleResponseChangesItemAfterInterruptionsItemStartDayMax = 1000000;
 
 export const analyzeScheduleResponseChangesItemAfterInterruptionsItemEndDayMax = 1000000;
@@ -88,10 +90,12 @@ export const AnalyzeScheduleResponse = zod.object({
   "mode": zod.enum(['rules-based']),
   "modeDetail": zod.string(),
   "constraints": zod.array(zod.object({
+  "restriction": zod.enum(['outage', 'start-not-before']),
+  "earliestStartDay": zod.number().int().min(1).max(analyzeScheduleResponseConstraintsItemEarliestStartDayMax).nullable(),
   "kind": zod.enum(['equipment', 'task', 'crew']),
   "target": zod.string(),
   "taskIds": zod.array(zod.string()),
-  "duration": zod.number().int(),
+  "duration": zod.number().int().nullable(),
   "startDay": zod.number().int().nullable(),
   "endDay": zod.number().int().nullable(),
   "releaseDay": zod.number().int().nullable()

@@ -12,6 +12,7 @@ export * from './dayWindow';
 export * from './healthStatus';
 export * from './holdConstraint';
 export * from './holdConstraintKind';
+export * from './holdConstraintRestriction';
 export * from './milestoneMapping';
 export * from './projectTask';
 export * from './questionInput';

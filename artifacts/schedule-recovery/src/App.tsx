@@ -24,7 +24,11 @@ import {
 import { applyProposal } from "./proposal";
 import { taskFinish } from "@workspace/api-zod";
 
-type ChatEntry = { who: "user" | "assistant"; text: string };
+type ChatEntry = {
+  who: "user" | "assistant";
+  text: string;
+  modeDetail?: string;
+};
 const day = (n: number) => `Day ${n}`;
 const finish = (tasks: Task[]) => Math.max(...tasks.map(taskFinish));
 const errorText = (e: unknown) => {
@@ -123,7 +127,14 @@ export default function App() {
           .map((c) => c.text),
       });
       if (version === revision.current)
-        setChat((prev) => [...prev, { who: "assistant", text: result.answer }]);
+        setChat((prev) => [
+          ...prev,
+          {
+            who: "assistant",
+            text: result.answer,
+            modeDetail: result.modeDetail,
+          },
+        ]);
     } catch (e) {
       if (version === revision.current) {
         setError(errorText(e));
@@ -336,8 +347,8 @@ export default function App() {
                   <div className="panel-kicker">02 / What changed?</div>
                   <h2 className="panel-title">Describe the disruption</h2>
                   <p className="panel-subtitle">
-                    Name exact equipment or a task and its project-day hold
-                    window.
+                    Name a task, crew, or equipment and an earliest-start day or
+                    project-day outage window.
                   </p>
                 </div>
               </div>
@@ -385,8 +396,10 @@ export default function App() {
                     start.
                   </label>
                   <p>
-                    No start is assumed. Days 4–5 release at the start of Day 6.
-                    An outage today is not automatically moved to future work.
+                    No start is assumed. “Cannot start until Day 4” permits a
+                    start on Day 4; no hold duration is needed. Days 4–5 outages
+                    release at the start of Day 6. An outage today is not
+                    automatically moved to future work.
                   </p>
                 </div>
                 <div className="event-footer">
@@ -561,10 +574,14 @@ export default function App() {
                       <div className="disclaimer" key={i}>
                         <CalendarDays size={14} />
                         <span>
-                          {c.target}: {c.duration}-day hold.{" "}
-                          {c.startDay === null
-                            ? "Start unconfirmed"
-                            : `Days ${c.startDay}–${c.endDay}; release Day ${c.releaseDay}.`}
+                          {c.target}:{" "}
+                          {c.restriction === "start-not-before"
+                            ? `earliest start Day ${c.earliestStartDay} (inclusive). Starts only; not an interruption or added work.`
+                            : `${c.duration}-day hold. ${
+                                c.startDay === null
+                                  ? "Start unconfirmed"
+                                  : `Days ${c.startDay}–${c.endDay}; release Day ${c.releaseDay}.`
+                              }`}
                         </span>
                       </div>
                     ))}
@@ -720,6 +737,9 @@ export default function App() {
                           : "Rules-based schedule answer"}
                       </span>
                       {c.text}
+                      {c.modeDetail && (
+                        <p className="disclaimer">{c.modeDetail}</p>
+                      )}
                     </div>
                   ))}
                 </div>

@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from "node:util";
 import type {
   AnalysisInput,
   ScheduleAnalysis,
@@ -5,6 +6,7 @@ import type {
   ScheduleSnapshot,
 } from "@workspace/api-zod";
 import {
+  AnalyzeScheduleResponse,
   executionDates,
   taskFinish,
   type PauseWindow,
@@ -13,7 +15,7 @@ import {
 export const modeDetail =
   "Rules-based backend. Live AI was not implemented at this time and is deferred: managed OpenAI provisioning is unavailable in this environment. No model calls or token usage. Credit cost unverified.";
 const convention =
-  "Project days are inclusive: a hold on Days 4–5 releases at the start of Day 6. Work pauses during overlapping holds and resumes afterward. Task duration remains working days; accepted pause windows are stored separately from elapsed start-to-finish spans. Finish-to-start dependencies begin no earlier than the next day. No resource-capacity leveling or calendar inference.";
+  "An earliest start of Day 4 permits starting on Day 4; it is not a four-day delay or an interruption. Project days are inclusive: a hold on Days 4–5 releases at the start of Day 6. Work pauses during overlapping holds and resumes afterward. Task duration remains working days; accepted pause windows are stored separately from elapsed start-to-finish spans. Finish-to-start dependencies begin no earlier than the next day. No resource-capacity leveling or calendar inference.";
 const norm = (s: string) =>
   s
     .toLowerCase()
@@ -122,7 +124,7 @@ export function validateGraph(s: ScheduleSnapshot) {
   return order;
 }
 
-function interpret(input: AnalysisInput) {
+export function interpret(input: AnalysisInput) {
   const constraints: HoldConstraint[] = [],
     clarifications: string[] = [],
     assumptions: string[] = [];
@@ -130,13 +132,39 @@ function interpret(input: AnalysisInput) {
   const equipment = [...new Set(tasks.map((t) => t.equipment))];
   const crews = [...new Set(tasks.map((t) => t.crew))];
   const negatedTargets = new Set<string>();
+  if (
+    /\b(ignore|override|instructions?|pretend|system prompt)\b/i.test(
+      input.disruption,
+    ) ||
+    /\bday\s*[-−]\s*\d|\b\d+\.\d+\b/i.test(numberWords(input.disruption))
+  )
+    return {
+      constraints,
+      assumptions,
+      clarifications: [
+        "Describe only a scheduling restriction with whole positive project days; instructions cannot override schedule validation.",
+      ],
+    };
   // Split independent named constraints, but keep "between Day 4 and Day 5" intact.
   const clauses = input.disruption
     .split(/[;,.!?\n]+|\b(?:and|but|while|plus)\b(?=\s+(?:the\s+)?[a-z])/i)
     .filter((s) => s.trim());
   for (const clause of clauses) {
-    const text = numberWords(clause).replace(/(\d)-day/g, "$1 day");
+    const text = numberWords(clause)
+      .replace(/[’']/g, "'")
+      .replace(/\bcan'?t\b/g, "cannot")
+      .replace(/\bwon't\b/g, "will not")
+      .replace(/(\d)-day/g, "$1 day");
+    const earliestMatches = [
+      ...text.matchAll(
+        /\b(?:(?:cannot|can not|will not|may not)\s+(?:start|begin)\s+(?:until|before)|(?:not|no)\s+(?:start(?:ing)?|begin(?:ning)?)\s+before|available\s+(?:starting|from))\s+(?:project\s+)?day\s+(\d+)\b/g,
+      ),
+    ];
+    const earliestDay = earliestMatches.length
+      ? Number(earliestMatches[0][1])
+      : null;
     if (
+      earliestDay === null &&
       /\b(until|through)\s+(?:project\s+)?day\s+\d+\b/i.test(text) &&
       !/\bdays?\s+\d+\s*(?:[-–—]|through|to|and)\s*(?:day\s*)?\d+\b/.test(text)
     ) {
@@ -171,7 +199,7 @@ function interpret(input: AnalysisInput) {
       )
     )
       continue;
-    if (!disruption) {
+    if (!disruption && earliestDay === null) {
       if (!/\b(coffee|lunch|snack|catering|break.room)\b/i.test(clause))
         clarifications.push(
           "Describe a hold or unavailability window for a listed task, crew, or equipment.",
@@ -188,6 +216,17 @@ function interpret(input: AnalysisInput) {
       );
       continue;
     }
+    if (
+      /\b(today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i.test(
+        text,
+      ) &&
+      !input.confirmedTiming
+    ) {
+      clarifications.push(
+        "Map relative or calendar timing to an explicit project-day start; yearless dates are not inferred.",
+      );
+      continue;
+    }
     let targets: {
       kind: HoldConstraint["kind"];
       target: string;
@@ -201,7 +240,11 @@ function interpret(input: AnalysisInput) {
     const explicitOutage = (name: string) =>
       new RegExp(
         `\\b${norm(name).replace(/ /g, "\\s+")}\\s+(?:(?:is|will|be|on|a|an|the)\\s+)*(?:unavailable|down|broken|offline|outage|held|hold)\\b`,
-      ).test(norm(clause));
+      ).test(norm(clause)) ||
+      (earliestDay !== null &&
+        new RegExp(
+          `\\b${norm(name).replace(/ /g, "\\s+")}\\s+(?:(?:is|will|be|the)\\s+)*(?:cannot|can t|can not|will not|may not|available)\\b`,
+        ).test(norm(text)));
     const outageEquipment = exact.filter(explicitOutage);
     const outageCrews = exactCrews.filter(explicitOutage);
     if (namedTasks.length && (outageEquipment.length || outageCrews.length)) {
@@ -256,6 +299,59 @@ function interpret(input: AnalysisInput) {
         continue;
       }
     }
+    if (earliestDay !== null) {
+      const days = [...text.matchAll(/\bday\s+(\d+)\b/g)].map((m) =>
+        Number(m[1]),
+      );
+      const matched = earliestMatches[0];
+      const prefix = norm(text.slice(0, matched.index!));
+      const tail = text.slice(matched.index! + matched[0].length).trim();
+      const targetNames = targets.flatMap((target) => [
+        norm(numberWords(target.target)),
+        ...(target.kind === "task"
+          ? [norm(numberWords(target.target.split(" · ")[0]))]
+          : []),
+      ]);
+      // A keyword match is not enough: "not available", "might be available",
+      // and "no longer cannot start" reverse or weaken the asserted restriction.
+      const explicitSubject = targetNames.some((name) =>
+        [name, `the ${name}`].some((subject) =>
+          [subject, `${subject} is`, `${subject} will be`].includes(prefix),
+        ),
+      );
+      const effect = tail.match(/^affecting\s+(.+)$/);
+      const knownEffect =
+        effect && tasks.some((t) => norm(effect[1]) === norm(t.name));
+      if (
+        earliestMatches.length !== 1 ||
+        days.some((d) => d !== earliestDay) ||
+        earliestDay < 1 ||
+        earliestDay > 10000 ||
+        !explicitSubject ||
+        (tail && !knownEffect) ||
+        targets.length !== 1 ||
+        (input.confirmedTiming &&
+          input.confirmedTiming.startDay !== earliestDay)
+      ) {
+        clarifications.push(
+          "Provide one unambiguous earliest-start project day (1–10000) for one exact task or resource. Separate outages from start restrictions and resolve conflicting timing.",
+        );
+        continue;
+      }
+      assumptions.push(
+        `Earliest start Day ${earliestDay} is inclusive: work may begin on Day ${earliestDay}. This restricts starts only, not work already in progress; no outage or extra working duration is inferred.`,
+      );
+      constraints.push({
+        ...targets[0],
+        restriction: "start-not-before",
+        earliestStartDay: earliestDay,
+        duration: null,
+        startDay: null,
+        endDay: null,
+        releaseDay: earliestDay,
+      });
+      continue;
+    }
     const durations = [...text.matchAll(/\b(\d+)\s*[- ]?\s*days?\b/g)].map(
       (m) => Number(m[1]),
     );
@@ -290,6 +386,12 @@ function interpret(input: AnalysisInput) {
     const duration = window
       ? Number(window[2]) - Number(window[1]) + 1
       : durations[0];
+    if (window && startDays.some((d) => d !== Number(window[1]))) {
+      clarifications.push(
+        "The stated hold start conflicts with its inclusive window. Confirm one consistent window.",
+      );
+      continue;
+    }
     if (
       durations.some((d) => d !== duration) ||
       !Number.isInteger(duration) ||
@@ -342,6 +444,8 @@ function interpret(input: AnalysisInput) {
     for (const target of targets)
       constraints.push({
         ...target,
+        restriction: "outage",
+        earliestStartDay: null,
         duration,
         startDay,
         endDay: startDay === null ? null : startDay + duration - 1,
@@ -352,6 +456,26 @@ function interpret(input: AnalysisInput) {
     clarifications.push(
       "The same resource/task is described as both unavailable and not unavailable. Resolve the contradiction before applying.",
     );
+  for (const c of constraints.filter(
+    (c) => c.restriction === "start-not-before",
+  )) {
+    if (negatedTargets.has(c.target))
+      clarifications.push(
+        "Resolve conflicting availability and earliest-start statements before applying.",
+      );
+    if (
+      constraints.some(
+        (other) =>
+          other !== c &&
+          other.taskIds.some((id) => c.taskIds.includes(id)) &&
+          other.restriction === "start-not-before" &&
+          other.earliestStartDay !== c.earliestStartDay,
+      )
+    )
+      clarifications.push(
+        "Conflicting earliest-start days name the same work. Confirm one earliest-start day before applying.",
+      );
+  }
   return {
     constraints,
     clarifications: [...new Set(clarifications)],
@@ -359,9 +483,45 @@ function interpret(input: AnalysisInput) {
   };
 }
 
+// Interpreter boundary: neither a future model nor an API caller can supply dates.
+// Validate shape, then require exact input-grounded evidence, including scope and
+// clarifications. Unsupported language stays a clarification, never a guessed hold.
+const interpretationSchema = AnalyzeScheduleResponse.pick({
+  constraints: true,
+  assumptions: true,
+  clarifications: true,
+});
+export function validateInterpretation(
+  input: AnalysisInput,
+  candidate: unknown,
+) {
+  const parsed = interpretationSchema.strict().parse(candidate);
+  const evidence = interpret(input);
+  if (
+    !isDeepStrictEqual(candidate, parsed) ||
+    !isDeepStrictEqual(parsed, {
+      constraints: evidence.constraints,
+      assumptions: evidence.assumptions,
+      clarifications: evidence.clarifications,
+    })
+  )
+    throw new Error(
+      "Interpretation lacks exact input-grounded target, scope, or timing evidence.",
+    );
+  return parsed;
+}
+
 export function analyze(input: AnalysisInput): ScheduleAnalysis {
   if (!input.disruption.trim())
     throw new Error("Describe the disruption before analyzing.");
+  const interpretation = validateInterpretation(input, interpret(input));
+  return calculate(input, interpretation);
+}
+
+function calculate(
+  input: AnalysisInput,
+  interpretation: ReturnType<typeof validateInterpretation>,
+): ScheduleAnalysis {
   const order = validateGraph(input.schedule);
   const { tasks, milestone } = input.schedule;
   const finish = (
@@ -376,7 +536,6 @@ export function analyze(input: AnalysisInput): ScheduleAnalysis {
       baseline,
     ),
     beforeMilestone = finish(milestone.taskIds, baseline);
-  const interpretation = interpret(input);
   const common = {
     ...interpretation,
     mode: "rules-based" as const,
@@ -409,20 +568,27 @@ export function analyze(input: AnalysisInput): ScheduleAnalysis {
     const holds = interpretation.constraints.filter((c) =>
       c.taskIds.includes(id),
     );
-    const directOverlap = holds.some(
-      (c) => c.startDay! <= baseline.get(id)!.finish && c.endDay! >= t.startDay,
+    const directOverlap = holds.some((c) =>
+      c.restriction === "start-not-before"
+        ? t.startDay < c.earliestStartDay!
+        : c.startDay! <= baseline.get(id)!.finish && c.endDay! >= t.startDay,
     );
     if (directOverlap || t.dependencies.some((d) => affected.has(d)))
       affected.add(id);
     const earliest = Math.max(
       t.startDay,
+      ...holds
+        .filter((c) => c.restriction === "start-not-before")
+        .map((c) => c.earliestStartDay!),
       ...t.dependencies.map((d) => result.get(d)!.finish + 1),
     );
     result.set(
       id,
       executionDates(earliest, t.duration, [
         ...(t.interruptions ?? []),
-        ...holds.map((c) => ({ startDay: c.startDay!, endDay: c.endDay! })),
+        ...holds
+          .filter((c) => c.restriction === "outage")
+          .map((c) => ({ startDay: c.startDay!, endDay: c.endDay! })),
       ]),
     );
   }
@@ -450,8 +616,8 @@ export function analyze(input: AnalysisInput): ScheduleAnalysis {
     ),
     afterMilestone = finish(milestone.taskIds, result);
   const movement = changes.length
-    ? `Yes. ${changes.map((c) => `${c.name} moves from Days ${c.beforeStart}–${c.beforeFinish} to Days ${c.afterStart}–${c.afterFinish}`).join("; ")}.`
-    : "No. No task dates move.";
+    ? `${changes.map((c) => `${c.name} moves from Days ${c.beforeStart}–${c.beforeFinish} to Days ${c.afterStart}–${c.afterFinish}`).join("; ")}.`
+    : "No task dates move.";
   const milestoneText = `${milestone.name} completion ${afterMilestone === beforeMilestone ? `stays Day ${beforeMilestone}` : `moves from Day ${beforeMilestone} to Day ${afterMilestone}`} (target Day ${milestone.targetDay}).`;
   const finishText = `Overall project finish ${afterFinish === beforeFinish ? `stays Day ${beforeFinish}` : `moves from Day ${beforeFinish} to Day ${afterFinish}`}.`;
   const unchanged = tasks
@@ -460,7 +626,7 @@ export function analyze(input: AnalysisInput): ScheduleAnalysis {
   return {
     ...common,
     status: changes.length ? "ready" : "no-impact",
-    summary: `${movement} ${milestoneText} ${finishText} ${unchanged.length ? `Unchanged: ${unchanged.join("; ")}. ` : ""}Only overlapping holds and finish-to-start dependencies move work; available float is retained.`,
+    summary: `${movement} ${milestoneText} ${finishText} ${unchanged.length ? `Unchanged: ${unchanged.join("; ")}. ` : ""}Only explicit start restrictions, overlapping holds, and finish-to-start dependencies move work; available float is retained.`,
     changes,
     changedTaskIds: changes.map((c) => c.taskId),
     affectedTaskIds: [...affected],

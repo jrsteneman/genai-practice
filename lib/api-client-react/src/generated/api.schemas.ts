@@ -124,6 +124,14 @@ export interface QuestionInput {
   recentQuestions?: string[];
 }
 
+export type HoldConstraintRestriction = typeof HoldConstraintRestriction[keyof typeof HoldConstraintRestriction];
+
+
+export const HoldConstraintRestriction = {
+  outage: 'outage',
+  'start-not-before': 'start-not-before',
+} as const;
+
 export type HoldConstraintKind = typeof HoldConstraintKind[keyof typeof HoldConstraintKind];
 
 
@@ -134,10 +142,18 @@ export const HoldConstraintKind = {
 } as const;
 
 export interface HoldConstraint {
+  restriction: HoldConstraintRestriction;
+  /**
+     * @minimum 1
+     * @maximum 10000
+     * @nullable
+     */
+  earliestStartDay: number | null;
   kind: HoldConstraintKind;
   target: string;
   taskIds: string[];
-  duration: number;
+  /** @nullable */
+  duration: number | null;
   /** @nullable */
   startDay: number | null;
   /** @nullable */

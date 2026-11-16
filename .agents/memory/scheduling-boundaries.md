@@ -20,6 +20,12 @@ Keep working duration distinct from elapsed time across accepted interruptions.
 
 **How to apply:** Preserve absolute pause windows with accepted task dates. Merge old and new windows, compute finishes using working duration, and test apply-then-reanalyze for both identical and different disruptions.
 
+Treat “cannot start until Day 4” and equivalent explicit availability language as an inclusive earliest start, not an outage through Day 4.
+
+**Why:** The user distinguishes start restrictions from full resource unavailability and interrupted work. A release-day statement must not invent a duration, delay every assignment by four days, or pause work merely because it resumes after the release.
+
+**How to apply:** Restrict planned starts on every assignment of an identified resource, retain working durations and existing absolute interruptions, and clarify ambiguous release language rather than infer an outage.
+
 Do not narrow an explicit resource outage to a task named as an effect, and do not equate reduced staffing with a complete stoppage.
 
 **Why:** A resource can serve additional scheduled tasks even when the user names just one affected activity; partial crew headcount alone cannot establish lost productivity or a work hold.

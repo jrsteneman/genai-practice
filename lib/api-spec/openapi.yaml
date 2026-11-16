@@ -129,14 +129,16 @@ components:
           items: { type: string, maxLength: 500 }
     HoldConstraint:
       type: object
-      required: [kind, target, taskIds, duration, startDay, endDay, releaseDay]
+      required: [kind, target, taskIds, restriction, earliestStartDay, duration, startDay, endDay, releaseDay]
       properties:
+        restriction: { type: string, enum: [outage, start-not-before] }
+        earliestStartDay: { type: [integer, "null"], minimum: 1, maximum: 10000 }
         kind: { type: string, enum: [equipment, task, crew] }
         target: { type: string }
         taskIds:
           type: array
           items: { type: string }
-        duration: { type: integer }
+        duration: { type: [integer, "null"] }
         startDay: { type: [integer, "null"] }
         endDay: { type: [integer, "null"] }
         releaseDay: { type: [integer, "null"] }

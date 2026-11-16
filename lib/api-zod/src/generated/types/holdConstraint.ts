@@ -6,12 +6,21 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { HoldConstraintKind } from './holdConstraintKind';
+import type { HoldConstraintRestriction } from './holdConstraintRestriction';
 
 export interface HoldConstraint {
+  restriction: HoldConstraintRestriction;
+  /**
+     * @minimum 1
+     * @maximum 10000
+     * @nullable
+     */
+  earliestStartDay: number | null;
   kind: HoldConstraintKind;
   target: string;
   taskIds: string[];
-  duration: number;
+  /** @nullable */
+  duration: number | null;
   /** @nullable */
   startDay: number | null;
   /** @nullable */

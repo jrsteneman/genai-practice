@@ -30,8 +30,32 @@ test("live question API answers movement directly", async () => {
   });
   assert.equal(response.status, 200);
   const r = await response.json();
-  assert.match(r.answer, /^Yes\./);
+  assert.match(r.answer, /^North wing framing moves/);
   assert.match(r.answer, /Overall project finish stays Day 11/);
+});
+test("live API accepts Concrete Crew A earliest-start paraphrases and reanalysis is idempotent", async () => {
+  for (const disruption of [
+    "Concrete Crew A cannot start until Day 4",
+    "Concrete Crew A can't start before Day 4",
+    "Concrete Crew A cannot begin until project Day four",
+    "Concrete Crew A available starting Day 4",
+  ]) {
+    const i = structuredClone({ ...context, disruption });
+    const response = await post("analyze", i);
+    assert.equal(response.status, 200);
+    const r = await response.json();
+    assert.equal(r.status, "ready", disruption);
+    assert.equal(r.constraints[0].restriction, "start-not-before");
+    assert.equal(
+      r.changes.find((c: { taskId: string }) => c.taskId === "footings")
+        .afterStart,
+      4,
+    );
+    assert.doesNotMatch(r.summary, /^(Yes|No)\./);
+    i.schedule.tasks = applyProposal(i.schedule.tasks, r);
+    const repeat = await post("analyze", i);
+    assert.equal((await repeat.json()).status, "no-impact");
+  }
 });
 test("live API clarifies unknown timing without dates or proposal", async () => {
   const response = await post("analyze", {
