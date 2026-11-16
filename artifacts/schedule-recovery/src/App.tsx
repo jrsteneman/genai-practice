@@ -359,8 +359,11 @@ export default function App() {
                   value={event}
                   maxLength={2000}
                   onChange={(e) => {
+                    // Capture and store the draft before clearing derived UI.
+                    // Never read a live DOM value after scheduling those resets.
+                    const nextEvent = e.currentTarget.value;
+                    setEvent(nextEvent);
                     invalidate();
-                    setEvent(e.target.value);
                     setConfirmed(false);
                   }}
                   placeholder="Telehandler unavailable for 2 days starting Day 4"
