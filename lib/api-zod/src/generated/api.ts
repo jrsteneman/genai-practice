@@ -51,11 +51,11 @@ export const AnalyzeScheduleBody = zod.object({
   "tasks": zod.array(zod.object({
   "id": zod.string().min(1).max(analyzeScheduleBodyScheduleTasksItemIdMax),
   "name": zod.string().min(1).max(analyzeScheduleBodyScheduleTasksItemNameMax),
-  "startDay": zod.number().int().min(1).max(analyzeScheduleBodyScheduleTasksItemStartDayMax),
-  "duration": zod.number().int().min(1).max(analyzeScheduleBodyScheduleTasksItemDurationMax),
+  "startDay": zod.int().min(1).max(analyzeScheduleBodyScheduleTasksItemStartDayMax),
+  "duration": zod.int().min(1).max(analyzeScheduleBodyScheduleTasksItemDurationMax),
   "interruptions": zod.array(zod.object({
-  "startDay": zod.number().int().min(1).max(analyzeScheduleBodyScheduleTasksItemInterruptionsItemStartDayMax),
-  "endDay": zod.number().int().min(1).max(analyzeScheduleBodyScheduleTasksItemInterruptionsItemEndDayMax)
+  "startDay": zod.int().min(1).max(analyzeScheduleBodyScheduleTasksItemInterruptionsItemStartDayMax),
+  "endDay": zod.int().min(1).max(analyzeScheduleBodyScheduleTasksItemInterruptionsItemEndDayMax)
 })).max(analyzeScheduleBodyScheduleTasksItemInterruptionsMax).optional().describe('Accepted absolute nonworking windows; duration remains working days, not elapsed days.'),
   "dependencies": zod.array(zod.string().min(1).max(analyzeScheduleBodyScheduleTasksItemDependenciesItemMax)).max(analyzeScheduleBodyScheduleTasksItemDependenciesMax),
   "crew": zod.string().min(1).max(analyzeScheduleBodyScheduleTasksItemCrewMax),
@@ -64,12 +64,12 @@ export const AnalyzeScheduleBody = zod.object({
   "milestone": zod.object({
   "name": zod.string().min(1).max(analyzeScheduleBodyScheduleMilestoneNameMax),
   "taskIds": zod.array(zod.string().min(1).max(analyzeScheduleBodyScheduleMilestoneTaskIdsItemMax)).min(1).max(analyzeScheduleBodyScheduleMilestoneTaskIdsMax),
-  "targetDay": zod.number().int().min(1).max(analyzeScheduleBodyScheduleMilestoneTargetDayMax)
+  "targetDay": zod.int().min(1).max(analyzeScheduleBodyScheduleMilestoneTargetDayMax)
 })
 }),
   "disruption": zod.string().min(1).max(analyzeScheduleBodyDisruptionMax),
   "confirmedTiming": zod.object({
-  "startDay": zod.number().int().min(1).max(analyzeScheduleBodyConfirmedTimingStartDayMax),
+  "startDay": zod.int().min(1).max(analyzeScheduleBodyConfirmedTimingStartDayMax),
   "confirmed": zod.literal(true)
 }).optional()
 })
@@ -91,38 +91,38 @@ export const AnalyzeScheduleResponse = zod.object({
   "modeDetail": zod.string(),
   "constraints": zod.array(zod.object({
   "restriction": zod.enum(['outage', 'start-not-before']),
-  "earliestStartDay": zod.number().int().min(1).max(analyzeScheduleResponseConstraintsItemEarliestStartDayMax).nullable(),
+  "earliestStartDay": zod.int().min(1).max(analyzeScheduleResponseConstraintsItemEarliestStartDayMax).nullable(),
   "kind": zod.enum(['equipment', 'task', 'crew']),
   "target": zod.string(),
   "taskIds": zod.array(zod.string()),
-  "duration": zod.number().int().nullable(),
-  "startDay": zod.number().int().nullable(),
-  "endDay": zod.number().int().nullable(),
-  "releaseDay": zod.number().int().nullable()
+  "duration": zod.int().nullable(),
+  "startDay": zod.int().nullable(),
+  "endDay": zod.int().nullable(),
+  "releaseDay": zod.int().nullable()
 })),
   "changes": zod.array(zod.object({
   "taskId": zod.string(),
   "name": zod.string(),
-  "beforeStart": zod.number().int(),
-  "beforeFinish": zod.number().int(),
-  "afterStart": zod.number().int(),
-  "afterFinish": zod.number().int(),
-  "afterDuration": zod.number().int().describe('Working duration only. Outage days are retained separately, never added to work.'),
+  "beforeStart": zod.int(),
+  "beforeFinish": zod.int(),
+  "afterStart": zod.int(),
+  "afterFinish": zod.int(),
+  "afterDuration": zod.int().describe('Working duration only. Outage days are retained separately, never added to work.'),
   "afterInterruptions": zod.array(zod.object({
-  "startDay": zod.number().int().min(1).max(analyzeScheduleResponseChangesItemAfterInterruptionsItemStartDayMax),
-  "endDay": zod.number().int().min(1).max(analyzeScheduleResponseChangesItemAfterInterruptionsItemEndDayMax)
+  "startDay": zod.int().min(1).max(analyzeScheduleResponseChangesItemAfterInterruptionsItemStartDayMax),
+  "endDay": zod.int().min(1).max(analyzeScheduleResponseChangesItemAfterInterruptionsItemEndDayMax)
 })).max(analyzeScheduleResponseChangesItemAfterInterruptionsMax)
 })),
   "changedTaskIds": zod.array(zod.string()),
   "affectedTaskIds": zod.array(zod.string()),
   "assumptions": zod.array(zod.string()),
   "clarifications": zod.array(zod.string()),
-  "beforeFinish": zod.number().int(),
-  "afterFinish": zod.number().int().nullable(),
+  "beforeFinish": zod.int(),
+  "afterFinish": zod.int().nullable(),
   "milestoneName": zod.string(),
-  "milestoneTarget": zod.number().int(),
-  "beforeMilestone": zod.number().int(),
-  "afterMilestone": zod.number().int().nullable(),
+  "milestoneTarget": zod.int(),
+  "beforeMilestone": zod.int(),
+  "afterMilestone": zod.int().nullable(),
   "convention": zod.string()
 })
 
@@ -177,11 +177,11 @@ export const AskScheduleBody = zod.object({
   "tasks": zod.array(zod.object({
   "id": zod.string().min(1).max(askScheduleBodyContextScheduleTasksItemIdMax),
   "name": zod.string().min(1).max(askScheduleBodyContextScheduleTasksItemNameMax),
-  "startDay": zod.number().int().min(1).max(askScheduleBodyContextScheduleTasksItemStartDayMax),
-  "duration": zod.number().int().min(1).max(askScheduleBodyContextScheduleTasksItemDurationMax),
+  "startDay": zod.int().min(1).max(askScheduleBodyContextScheduleTasksItemStartDayMax),
+  "duration": zod.int().min(1).max(askScheduleBodyContextScheduleTasksItemDurationMax),
   "interruptions": zod.array(zod.object({
-  "startDay": zod.number().int().min(1).max(askScheduleBodyContextScheduleTasksItemInterruptionsItemStartDayMax),
-  "endDay": zod.number().int().min(1).max(askScheduleBodyContextScheduleTasksItemInterruptionsItemEndDayMax)
+  "startDay": zod.int().min(1).max(askScheduleBodyContextScheduleTasksItemInterruptionsItemStartDayMax),
+  "endDay": zod.int().min(1).max(askScheduleBodyContextScheduleTasksItemInterruptionsItemEndDayMax)
 })).max(askScheduleBodyContextScheduleTasksItemInterruptionsMax).optional().describe('Accepted absolute nonworking windows; duration remains working days, not elapsed days.'),
   "dependencies": zod.array(zod.string().min(1).max(askScheduleBodyContextScheduleTasksItemDependenciesItemMax)).max(askScheduleBodyContextScheduleTasksItemDependenciesMax),
   "crew": zod.string().min(1).max(askScheduleBodyContextScheduleTasksItemCrewMax),
@@ -190,12 +190,12 @@ export const AskScheduleBody = zod.object({
   "milestone": zod.object({
   "name": zod.string().min(1).max(askScheduleBodyContextScheduleMilestoneNameMax),
   "taskIds": zod.array(zod.string().min(1).max(askScheduleBodyContextScheduleMilestoneTaskIdsItemMax)).min(1).max(askScheduleBodyContextScheduleMilestoneTaskIdsMax),
-  "targetDay": zod.number().int().min(1).max(askScheduleBodyContextScheduleMilestoneTargetDayMax)
+  "targetDay": zod.int().min(1).max(askScheduleBodyContextScheduleMilestoneTargetDayMax)
 })
 }),
   "disruption": zod.string().min(1).max(askScheduleBodyContextDisruptionMax),
   "confirmedTiming": zod.object({
-  "startDay": zod.number().int().min(1).max(askScheduleBodyContextConfirmedTimingStartDayMax),
+  "startDay": zod.int().min(1).max(askScheduleBodyContextConfirmedTimingStartDayMax),
   "confirmed": zod.literal(true)
 }).optional()
 }),
