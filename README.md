@@ -19,7 +19,9 @@ Another limitation is the inability to input a custom schedule, since right now 
 It also lacks the ability to save any inputted data, which is a lesser priority than the first two but would be nice to have.
 
 
-##Revision
+
+
+## Revision
 
 An attempt at AI functionality was made, but not successfully at this point, further research into integrations for implementing a relatively small language model like gpt-mini must be done in order to accomplish this. As of right now, the intended AI functionality is implemented via a deterministic algorithm, but it is more robust than previously.
 
@@ -33,7 +35,7 @@ An attempt at AI functionality was made, but not successfully at this point, fur
 |Case|	Input or action	| Expected result / success criterion	| Actual result	| Pass, partial, or fail	| Implication or next step|
 | -------- |-------- |-------- |-------- |-------- |-------- |
 |Typical 1|"The telehandler is on a two day hold on Days 5-6" |A plan restructuring around the job that can no longer be done on days 4-6 with appropriate delay and reallocation. |Moved North wing framing to be done later on Day 8, delayed roof sheathing, final completion date remains unchanged due to leeway in original plan. |Pass |Fixes issue reviewer found in the first draft, which previously did not clearly indicate that the hold was accounted for, if it was at all. |					
-|Typical 2| | | | | |					
-|Challenge| | | | | |						
-|Invalid or empty| | | | | |						
-|Risk| | | | | |						
+|Typical 2|"Form crew B starts on Day 3" |Pushing that job back to Day 3 and handling everything else accordingly. |Pushed Form crew B's job back to Day 3, pushed everything else that depended on it back 1-2 days depending on what it was, moved overall project back one day. |Pass |Working as intended here. |					
+|Challenge|"Mini excavator on hold until Day 3 and Interior crew on hold until Day 5" |Separately handles each issue resolving each dependency and keeping everything straight. |No plan given with error "Use an inclusive project-day window such as Days 4–5 instead of an ambiguous release or end day" |Fail |Multi-step changes still require more work. |						
+|Invalid or empty|"Lunch time delayed one hour" |An indication that no tasks are moved |Sometimes indicated no tasks moved, other times gave error indicating task not found. |Partial |Strange behavior should be investigated, but both results are technically acceptable |						
+|Risk|"The first form crew starts a day late." |Ambiguous since there are two form crews, but should interpret it as the one on Day 1 and plan accordingly or at least request more info. |Gave error due to lack of explicitly named crew. |Partial |Language model will help this, but at least it does not assume it is referring to form crew A even though that is the wrong one. |		
