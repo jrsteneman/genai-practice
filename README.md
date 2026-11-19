@@ -46,7 +46,7 @@ deterministic recommendation engine, as well as perhaps the ability to import a 
 
 A risk that may occur with this offering is the recommendation engine may misinterpret the slippage issue given by the user and give a reasonable looking but faulty revised plan. In the current iteration, this is mitigated by giving a detailed overview of the plan and how everything changes for user verification, and having a strict syntax to ensure no misunderstandings and an error system to correct said syntax on the user's end. This prevents the user from simply taking the recommendations at face value and encourages critical judgement. When the project moves to a language model based recommendation engine, though, the model will have to be prompted to maintain this aspect of the recommendation.
 
-# AI Use
+## AI Use
 
 Tools used: Replit
 Development assistance: Replit produced all of the code, and fixed bugs and security issues following prompting
@@ -54,3 +54,7 @@ Representative prompts: Sample: "Make the recovery plan input a little bit more 
 Human judgment: The detailed plan summary would include "Yes." at the beginning of each answer, as if responding to a question. I had this removed since it is off-putting for a person to read.
 Verification: Using the above tests and the testing from reviews, I was able to fix many of the issues at least from this implementation.
 AI inside the product: The AI will eventually serve as the request processing and schedule design engine. It will receive the schedule and slippage incident from the user and produce a schedule revision with an overview of the delays, and allow for follow-ups. This is not yet implemented, but will be in such a way that the current functionality is maintained.
+
+## Demo Video
+
+https://drive.google.com/file/d/1pM3D0_cshCoohvfYw9zCoxY1if8U5JZ4/view?usp=drive_link
