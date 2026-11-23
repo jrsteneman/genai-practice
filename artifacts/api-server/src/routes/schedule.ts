@@ -1,7 +1,8 @@
-import { Router, type IRouter, type Response } from "express";
+import { randomBytes } from "node:crypto";
+import cookieParser from "cookie-parser";
+import { Router, type IRouter, type Request, type Response } from "express";
 import {
   AnalyzeScheduleBody,
-  AnalyzeScheduleResponse,
   AskScheduleBody,
   AskScheduleResponse,
 } from "@workspace/api-zod";
@@ -12,6 +13,25 @@ import {
 } from "../lib/schedule-ai-budget";
 
 const router: IRouter = Router();
+// The analysis cache is process-local, so its cookie needs no persisted key.
+// The network IP is used for budgeting only; it is never a cache identity.
+const cacheCookies = cookieParser(randomBytes(32).toString("hex"));
+
+function analysisSession(req: Request, res: Response): string {
+  const name = req.secure ? "__Host-slipless-ai" : "slipless-ai";
+  const existing = req.signedCookies[name];
+  if (typeof existing === "string") return existing;
+  const session = randomBytes(32).toString("hex");
+  res.cookie(name, session, {
+    signed: true,
+    httpOnly: true,
+    sameSite: "strict",
+    secure: req.secure,
+    path: "/",
+  });
+  return session;
+}
+
 function scheduleError(res: Response, error: unknown) {
   const status =
     error instanceof ScheduleAiLimitReached
@@ -26,7 +46,7 @@ function scheduleError(res: Response, error: unknown) {
     });
 }
 
-router.post("/schedule/analyze", async (req, res): Promise<void> => {
+router.post("/schedule/analyze", cacheCookies, async (req, res): Promise<void> => {
   const parsed = AnalyzeScheduleBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({
@@ -40,15 +60,13 @@ router.post("/schedule/analyze", async (req, res): Promise<void> => {
   }
   try {
     res.json(
-      AnalyzeScheduleResponse.parse(
-        await analyzeWithModel(parsed.data, req.ip),
-      ),
+      await analyzeWithModel(parsed.data, req.ip, analysisSession(req, res)),
     );
   } catch (e) {
     scheduleError(res, e);
   }
 });
-router.post("/schedule/question", async (req, res): Promise<void> => {
+router.post("/schedule/question", cacheCookies, async (req, res): Promise<void> => {
   const parsed = AskScheduleBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({
@@ -65,6 +83,7 @@ router.post("/schedule/question", async (req, res): Promise<void> => {
           parsed.data.question,
           parsed.data.recentQuestions,
           req.ip,
+          analysisSession(req, res),
         ),
       ),
     );

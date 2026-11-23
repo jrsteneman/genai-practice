@@ -1,4 +1,10 @@
-import type { AnalysisInput, HoldConstraint } from "@workspace/api-zod";
+import { createHash } from "node:crypto";
+import {
+  AnalyzeScheduleResponse,
+  type AnalysisInput,
+  type HoldConstraint,
+  type ScheduleAnalysis,
+} from "@workspace/api-zod";
 import { calculate, interpret, numberWords, validateGraph } from "./schedule";
 import { logger } from "./logger";
 import {
@@ -342,9 +348,70 @@ function validateModelInput(input: AnalysisInput) {
   validateGraph(input.schedule);
 }
 
-export async function analyzeWithModel(input: AnalysisInput, visitorIp: string | undefined) {
+const analysisTtlMs = 5 * 60_000;
+const maxCachedAnalyses = 128;
+const analyses = new Map<string, {
+  fingerprint: string;
+  facts: ScheduleAnalysis;
+  expiresAt: number;
+  timer: NodeJS.Timeout;
+}>();
+
+// Both routes parse the same context fields into schema order. Hash the full
+// input, including accepted interruptions and confirmed timing, not the chat.
+const fingerprintFor = (input: AnalysisInput) =>
+  createHash("sha256").update(JSON.stringify(input)).digest("hex");
+
+function forgetAnalysis(session: string) {
+  const previous = analyses.get(session);
+  if (previous) clearTimeout(previous.timer);
+  analyses.delete(session);
+}
+
+function readAnalysis(session: string, fingerprint: string) {
+  const entry = analyses.get(session);
+  if (!entry) return;
+  if (entry.expiresAt <= Date.now() || entry.fingerprint !== fingerprint) {
+    forgetAnalysis(session);
+    return;
+  }
+  return entry.facts;
+}
+
+async function analyzeAndRemember(
+  input: AnalysisInput,
+  complete: Complete,
+  session: string,
+  fingerprint: string,
+) {
+  const facts = AnalyzeScheduleResponse.parse(await analyze(input, complete));
+  forgetAnalysis(session);
+  // An unresolved interpretation should not prevent a retry from grounding
+  // the disruption, including when the provider returned unverifiable data.
+  if (facts.status !== "clarification") {
+    if (analyses.size >= maxCachedAnalyses) {
+      const oldest = analyses.keys().next().value;
+      if (oldest !== undefined) forgetAnalysis(oldest);
+    }
+    analyses.set(session, {
+      fingerprint,
+      facts,
+      expiresAt: Date.now() + analysisTtlMs,
+      timer: setTimeout(() => forgetAnalysis(session), analysisTtlMs).unref(),
+    });
+  }
+  return facts;
+}
+
+export async function analyzeWithModel(
+  input: AnalysisInput,
+  visitorIp: string | undefined,
+  session: string,
+) {
   validateModelInput(input);
-  return withModel(visitorIp, ["interpretation"], (complete) => analyze(input, complete));
+  return withModel(visitorIp, ["interpretation"], (complete) =>
+    analyzeAndRemember(input, complete, session, fingerprintFor(input)),
+  );
 }
 
 async function analyze(input: AnalysisInput, complete: Complete) {
@@ -433,10 +500,17 @@ export async function answerWithModel(
   question: string,
   recentQuestions: string[] | undefined,
   visitorIp: string | undefined,
+  session: string,
 ) {
   validateModelInput(context);
-  return withModel(visitorIp, ["interpretation", "answer"], async (complete) => {
-    const facts = await analyze(context, complete);
+  const fingerprint = fingerprintFor(context);
+  const cached = readAnalysis(session, fingerprint);
+  // Pin the lookup before reserving: expiration or eviction while awaiting
+  // admission cannot introduce an interpretation call we did not reserve.
+  const steps: Step[] = cached ? ["answer"] : ["interpretation", "answer"];
+  return withModel(visitorIp, steps, async (complete) => {
+    const facts = cached ??
+      await analyzeAndRemember(context, complete, session, fingerprint);
     const answer = await complete(
       "answer",
       `Answer the construction schedule question directly in at most 120 words. Schedule facts are

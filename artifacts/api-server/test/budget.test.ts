@@ -16,7 +16,8 @@ const interpretationCost = maxCost(2200);
 const questionCost = interpretationCost + maxCost(450);
 const mockUsageCost = 100 + 8 * 20;
 let api: Server, model: Server, modelCalls: number[];
-let provider: "normal" | "hold" | "unknown" | "invalid";
+let answerInputs: Record<string, unknown>[];
+let provider: "normal" | "hold" | "unknown" | "invalid" | "ungrounded";
 let releaseModel: () => void;
 let modelEntered: Promise<void>;
 
@@ -42,6 +43,7 @@ before(async () => {
     const data = JSON.parse(Buffer.concat(chunks).toString());
     const limit = data.max_completion_tokens;
     modelCalls.push(limit);
+    if (limit === 450) answerInputs.push(JSON.parse(data.messages[1].content));
     if (provider === "hold") {
       await new Promise<void>((resolve) => {
         releaseModel = resolve;
@@ -52,7 +54,9 @@ before(async () => {
       limit === 2200
         ? provider === "invalid"
           ? "not JSON"
-          : '{"status":"no-impact","items":[]}'
+          : provider === "ungrounded"
+            ? '{"status":"constraints","items":[{}]}'
+            : '{"status":"no-impact","items":[]}'
         : "Review the calculated dates.";
     res.setHeader("content-type", "application/json");
     res.end(
@@ -80,6 +84,7 @@ beforeEach(async () => {
   delete process.env.SCHEDULE_AI_BUDGET_MICRO_USD;
   delete process.env.SCHEDULE_AI_VISITOR_DAILY_LIMIT;
   modelCalls = [];
+  answerInputs = [];
   provider = "normal";
   modelEntered = new Promise<void>((resolve) => {
     signalEntered = resolve;
@@ -90,16 +95,29 @@ after(async () => {
   await Promise.all([close(api), close(model), pool.end()]);
 });
 
-async function post(path: string, body: unknown, forwarded = "198.51.100.10") {
+async function post(
+  path: string,
+  body: unknown,
+  forwarded = "198.51.100.10",
+  cookie = "",
+) {
   const response = await fetch(`${base}/api/schedule/${path}`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
       "x-forwarded-for": forwarded,
+      "x-forwarded-proto": "https",
+      ...(cookie && { cookie }),
     },
     body: JSON.stringify(body),
   });
-  return { status: response.status, body: await response.json() };
+  const setCookie = response.headers.get("set-cookie");
+  return {
+    status: response.status,
+    body: await response.json(),
+    setCookie,
+    cookie: setCookie?.split(";")[0] ?? cookie,
+  };
 }
 async function committed() {
   const { rows } = await pool.query(
@@ -133,11 +151,95 @@ test("an unaffordable question uses neither model call", async () => {
 test("question uses two bounded model calls and settles both from one reservation", async () => {
   process.env.SCHEDULE_AI_BUDGET_MICRO_USD = String(questionCost);
   process.env.SCHEDULE_AI_VISITOR_DAILY_LIMIT = "1";
-  assert.equal((await post("question", question)).status, 200);
+  const first = await post("question", question);
+  assert.equal(first.status, 200);
   assert.deepEqual(modelCalls, [2200, 450]);
   assert.equal(await committed(), mockUsageCost * 2);
-  assert.equal((await post("analyze", context)).status, 429);
+  assert.equal((await post("question", question, undefined, first.cookie)).status, 429);
   assert.deepEqual(modelCalls, [2200, 450]);
+});
+
+test("a browser can ask different questions with only the answer budget after analysis", async () => {
+  const analysis = await post("analyze", context);
+  assert.equal(analysis.status, 200);
+  assert.match(analysis.setCookie!, /^__Host-slipless-ai=/);
+  for (const attr of ["Path=/", "HttpOnly", "Secure", "SameSite=Strict"]) {
+    assert.ok(analysis.setCookie!.includes(`; ${attr}`));
+  }
+  const answerCost = maxCost(450);
+  process.env.SCHEDULE_AI_BUDGET_MICRO_USD = String(answerCost + mockUsageCost * 2);
+  // A different JSON property order still represents the same parsed input.
+  const first = await post("question", {
+    ...question,
+    context: { disruption: context.disruption, schedule: context.schedule },
+  }, undefined, analysis.cookie);
+  const followUp = { ...question, question: "Which milestone?", recentQuestions: [question.question] };
+  const second = await post("question", followUp, undefined, analysis.cookie);
+  assert.equal(first.status, 200);
+  assert.equal(second.status, 200);
+  assert.deepEqual(modelCalls, [2200, 450, 450]);
+  assert.equal(await committed(), mockUsageCost * 3);
+  assert.deepEqual(answerInputs, [
+    { question: question.question, facts: analysis.body },
+    { question: followUp.question, recentQuestions: followUp.recentQuestions, facts: analysis.body },
+  ]);
+});
+
+test("two browsers on the same network cannot share analysis, including with a tampered cookie", async () => {
+  const first = await post("question", question);
+  assert.equal(first.status, 200);
+  process.env.SCHEDULE_AI_BUDGET_MICRO_USD = String(maxCost(450) + mockUsageCost * 2);
+  const secondBrowser = await post("question", question);
+  assert.equal(secondBrowser.status, 429);
+  assert.notEqual(secondBrowser.cookie, first.cookie);
+  assert.equal((await post("question", question, undefined, `${first.cookie}x`)).status, 429);
+  assert.equal((await post("question", question, undefined, first.cookie)).status, 200);
+  assert.deepEqual(modelCalls, [2200, 450, 450]);
+});
+
+test("schedule, milestone, accepted pauses, disruption and timing edits recompute the facts", async () => {
+  const updated = structuredClone(context);
+  const analysis = await post("analyze", updated);
+  assert.equal(analysis.status, 200);
+  const askUpdated = () => post("question", { ...question, context: updated }, undefined, analysis.cookie);
+  updated.schedule.tasks[0].name += " (revised)";
+  assert.equal((await askUpdated()).status, 200);
+  updated.schedule.milestone.targetDay++;
+  assert.equal((await askUpdated()).status, 200);
+  assert.equal((answerInputs.at(-1)!.facts as typeof analysis.body).milestoneTarget, updated.schedule.milestone.targetDay);
+  updated.schedule.tasks[0] = {
+    ...updated.schedule.tasks[0],
+    interruptions: [{ startDay: 2, endDay: 2 }],
+  };
+  assert.equal((await askUpdated()).status, 200);
+  updated.disruption = "Telehandler unavailable for two days";
+  assert.equal((await askUpdated()).status, 200);
+  const confirmed = { ...updated, confirmedTiming: { confirmed: true, startDay: 5 } };
+  assert.equal((await post("question", { ...question, context: confirmed }, undefined, analysis.cookie)).status, 200);
+  assert.deepEqual(modelCalls, [2200, 2200, 450, 2200, 450, 2200, 450, 2200, 450, 2200, 450]);
+});
+
+test("expired analysis is not reused", async (t) => {
+  t.mock.timers.enable({ apis: ["Date"], now: Date.now() });
+  const analysis = await post("analyze", context);
+  assert.equal(analysis.status, 200);
+  t.mock.timers.tick(5 * 60_000);
+  assert.equal((await post("question", question, undefined, analysis.cookie)).status, 200);
+  assert.deepEqual(modelCalls, [2200, 2200, 450]);
+});
+
+test("questions retry interpretation after a failed or ungrounded analysis", async () => {
+  const ambiguous = { ...context, disruption: "Something changed" };
+  provider = "invalid";
+  const failed = await post("analyze", ambiguous);
+  assert.equal(failed.status, 503);
+  provider = "ungrounded";
+  const unresolved = await post("analyze", ambiguous, undefined, failed.cookie);
+  assert.equal(unresolved.status, 200);
+  assert.equal(unresolved.body.status, "clarification");
+  provider = "normal";
+  assert.equal((await post("question", { ...question, context: ambiguous }, undefined, failed.cookie)).status, 200);
+  assert.deepEqual(modelCalls, [2200, 2200, 2200, 450]);
 });
 
 test("one visitor cannot bypass its daily limit with leftmost forwarded addresses or IP spelling", async () => {
