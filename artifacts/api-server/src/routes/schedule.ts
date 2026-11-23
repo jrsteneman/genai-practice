@@ -5,53 +5,57 @@ import {
   AskScheduleBody,
   AskScheduleResponse,
 } from "@workspace/api-zod";
-import { analyze, answer } from "../lib/schedule";
+import {
+  analyzeWithModel,
+  answerWithModel,
+  ScheduleModelUnavailable,
+} from "../lib/schedule-ai";
 
 const router: IRouter = Router();
-// No provider calls: AI is explicitly deferred. Requests are bounded by JSON
-// size, schema limits, and deterministic work over at most 100 tasks.
-router.post("/schedule/analyze", (req, res): void => {
+router.post("/schedule/analyze", async (req, res): Promise<void> => {
   const parsed = AnalyzeScheduleBody.safeParse(req.body);
   if (!parsed.success) {
-    res
-      .status(400)
-      .json({
-        error:
-          "Invalid analysis input: " +
-          parsed.error.issues
-            .map((i) => `${i.path.join(".")}: ${i.message}`)
-            .join("; "),
-      });
+    res.status(400).json({
+      error:
+        "Invalid analysis input: " +
+        parsed.error.issues
+          .map((i) => `${i.path.join(".")}: ${i.message}`)
+          .join("; "),
+    });
     return;
   }
   try {
-    res.json(AnalyzeScheduleResponse.parse(analyze(parsed.data)));
+    res.json(
+      AnalyzeScheduleResponse.parse(await analyzeWithModel(parsed.data)),
+    );
   } catch (e) {
     res
-      .status(400)
+      .status(e instanceof ScheduleModelUnavailable ? 503 : 400)
       .json({ error: e instanceof Error ? e.message : "Invalid schedule." });
   }
 });
-router.post("/schedule/question", (req, res): void => {
+router.post("/schedule/question", async (req, res): Promise<void> => {
   const parsed = AskScheduleBody.safeParse(req.body);
   if (!parsed.success) {
-    res
-      .status(400)
-      .json({
-        error:
-          "Invalid question input. Provide a bounded question and valid schedule context.",
-      });
+    res.status(400).json({
+      error:
+        "Invalid question input. Provide a bounded question and valid schedule context.",
+    });
     return;
   }
   try {
     res.json(
       AskScheduleResponse.parse(
-        answer(parsed.data.context, parsed.data.question),
+        await answerWithModel(
+          parsed.data.context,
+          parsed.data.question,
+          parsed.data.recentQuestions,
+        ),
       ),
     );
   } catch (e) {
     res
-      .status(400)
+      .status(e instanceof ScheduleModelUnavailable ? 503 : 400)
       .json({ error: e instanceof Error ? e.message : "Invalid schedule." });
   }
 });

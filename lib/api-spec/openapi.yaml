@@ -21,12 +21,17 @@ paths:
             schema: { $ref: "#/components/schemas/AnalysisInput" }
       responses:
         "200":
-          description: Deterministic schedule analysis
+          description: Model interpretation with calculated schedule dates
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ScheduleAnalysis" }
         "400":
           description: Invalid schedule or input
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScheduleError" }
+        "503":
+          description: Schedule model unavailable or busy
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ScheduleError" }
@@ -46,6 +51,11 @@ paths:
               schema: { $ref: "#/components/schemas/ScheduleAnswer" }
         "400":
           description: Invalid schedule or question
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScheduleError" }
+        "503":
+          description: Schedule model unavailable or busy
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ScheduleError" }
@@ -171,7 +181,7 @@ components:
       properties:
         summary: { type: string }
         status: { type: string, enum: [ready, clarification, no-impact] }
-        mode: { type: string, enum: [rules-based] }
+        mode: { type: string, enum: [rules-based, llm] }
         modeDetail: { type: string }
         constraints:
           type: array
@@ -203,7 +213,7 @@ components:
       required: [answer, mode, modeDetail]
       properties:
         answer: { type: string }
-        mode: { type: string, enum: [rules-based] }
+        mode: { type: string, enum: [rules-based, llm] }
         modeDetail: { type: string }
     ScheduleError:
       type: object

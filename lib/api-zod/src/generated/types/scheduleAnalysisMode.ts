@@ -11,4 +11,5 @@ export type ScheduleAnalysisMode = typeof ScheduleAnalysisMode[keyof typeof Sche
 
 export const ScheduleAnalysisMode = {
   'rules-based': 'rules-based',
+  llm: 'llm',
 } as const;

@@ -116,7 +116,7 @@ test("live API returns Cedar Ridge calculated changes", async () => {
   assert.deepEqual(r.changedTaskIds, ["frame", "sheath"]);
   assert.equal(r.afterFinish, 11);
   assert.equal(r.afterMilestone, 10);
-  assert.equal(r.mode, "rules-based");
+  assert.equal(r.mode, "llm");
 });
 test("live question API answers movement directly", async () => {
   const response = await post("question", {
@@ -125,8 +125,9 @@ test("live question API answers movement directly", async () => {
   });
   assert.equal(response.status, 200);
   const r = await response.json();
-  assert.match(r.answer, /^North wing framing moves/);
-  assert.match(r.answer, /Overall project finish stays Day 11/);
+  assert.equal(r.mode, "llm");
+  assert.match(r.answer, /North wing framing/i);
+  assert.match(r.answer, /Day 11/i);
 });
 test("live API accepts Concrete Crew A earliest-start paraphrases and reanalysis is idempotent", async () => {
   for (const disruption of [

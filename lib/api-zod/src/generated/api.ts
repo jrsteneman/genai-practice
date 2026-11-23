@@ -87,7 +87,7 @@ export const analyzeScheduleResponseChangesItemAfterInterruptionsMax = 100;
 export const AnalyzeScheduleResponse = zod.object({
   "summary": zod.string(),
   "status": zod.enum(['ready', 'clarification', 'no-impact']),
-  "mode": zod.enum(['rules-based']),
+  "mode": zod.enum(['rules-based', 'llm']),
   "modeDetail": zod.string(),
   "constraints": zod.array(zod.object({
   "restriction": zod.enum(['outage', 'start-not-before']),
@@ -205,7 +205,7 @@ export const AskScheduleBody = zod.object({
 
 export const AskScheduleResponse = zod.object({
   "answer": zod.string(),
-  "mode": zod.enum(['rules-based']),
+  "mode": zod.enum(['rules-based', 'llm']),
   "modeDetail": zod.string()
 })
 

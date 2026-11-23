@@ -12,11 +12,12 @@ try {
     bundle: true,
     platform: "node",
     format: "esm",
+    banner: { js: 'import { createRequire } from "node:module"; const require = createRequire(import.meta.url);' },
   });
   const result = spawnSync(
     process.execPath,
     ["--test", join(dir, `${entry}.test.mjs`)],
-    { stdio: "inherit" },
+    { stdio: "inherit", env: { ...process.env, NODE_ENV: "production" } },
   );
   process.exitCode = result.status ?? 1;
 } finally {

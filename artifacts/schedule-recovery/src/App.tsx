@@ -222,13 +222,13 @@ export default function App() {
         </nav>
         <div className="rail-bottom">
           <div className="prototype-status">
-            Rules-based backend
+            GPT-5 mini
             <br />
-            Live AI deferred
+            AI schedule assistant
           </div>
           <p className="rail-footnote">
-            Schedules are sent to the backend on submission. No permanent
-            storage. Foreman review is required.
+            Submitted disruption text and relevant schedule details are
+            processed by OpenAI through Replit. Foreman review is required.
           </p>
         </div>
       </aside>
@@ -238,7 +238,7 @@ export default function App() {
             Operations <ChevronRight size={13} />
             <span className="crumb-current">Schedule recovery</span>
           </div>
-          <div className="offline-pill">Rules-based · AI deferred</div>
+          <div className="offline-pill">AI-assisted · GPT-5 mini</div>
         </header>
         <section className="page-intro">
           <div>
@@ -554,7 +554,7 @@ export default function App() {
                           ? "Applied once to this demo"
                           : recommendation.status === "clarification"
                             ? "Clarification required"
-                            : "Rules-based analysis"}
+                            : "AI-assisted analysis"}
                       </div>
                       <h3 className="result-title">{recommendation.summary}</h3>
                     </div>
@@ -704,7 +704,7 @@ export default function App() {
                   <div className="panel-kicker">04 / Ask the schedule</div>
                   <h2 className="panel-title">Talk through the plan</h2>
                   <p className="panel-subtitle">
-                    Rules-based backend answers · live AI deferred.
+                    AI answers grounded in the calculated schedule.
                   </p>
                 </div>
               </div>
@@ -737,7 +737,7 @@ export default function App() {
                       <span className="chat-label">
                         {c.who === "user"
                           ? "You asked"
-                          : "Rules-based schedule answer"}
+                          : "AI schedule answer"}
                       </span>
                       {c.text}
                       {c.modeDetail && (
@@ -783,13 +783,11 @@ export default function App() {
         <footer className="boundary">
           <Info size={14} />
           <span>
-            <strong>Prototype limits:</strong> backend rules calculate dates;
-            live AI was not implemented at this time and is deferred because
-            managed provisioning is unavailable. No AI token usage; credit cost
-            unverified. Data is sent to the backend only on explicit analysis or
-            question submissions, not typing or applying. Nothing is permanently
-            stored. No calendar inference, capacity leveling, or autonomous
-            field approval.
+            <strong>Prototype limits:</strong> GPT-5 mini interprets disruptions
+            and answers questions; the schedule engine calculates dates.
+            OpenAI receives relevant data only on explicit analysis or question
+            submissions, not while typing or applying. No calendar inference,
+            capacity leveling, or automatic schedule changes.
           </span>
         </footer>
       </main>

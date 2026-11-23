@@ -11,4 +11,5 @@ export type ScheduleAnswerMode = typeof ScheduleAnswerMode[keyof typeof Schedule
 
 export const ScheduleAnswerMode = {
   'rules-based': 'rules-based',
+  llm: 'llm',
 } as const;

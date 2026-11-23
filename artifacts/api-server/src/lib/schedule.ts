@@ -13,7 +13,7 @@ import {
 } from "@workspace/api-zod";
 
 export const modeDetail =
-  "Rules-based backend. Live AI was not implemented at this time and is deferred: managed OpenAI provisioning is unavailable in this environment. No model calls or token usage. Credit cost unverified.";
+  "Rules-based schedule calculation.";
 const convention =
   "An earliest start of Day 4 permits starting on Day 4; it is not a four-day delay or an interruption. Project days are inclusive: a hold on Days 4–5 releases at the start of Day 6. Work pauses during overlapping holds and resumes afterward. Task duration remains working days; accepted pause windows are stored separately from elapsed start-to-finish spans. Finish-to-start dependencies begin no earlier than the next day. No resource-capacity leveling or calendar inference.";
 const norm = (s: string) =>
@@ -55,7 +55,7 @@ const words: Record<string, number> = {
   ninety: 90,
   hundred: 100,
 };
-function numberWords(s: string) {
+export function numberWords(s: string) {
   return s
     .toLowerCase()
     .replace(
@@ -528,9 +528,13 @@ export function analyze(input: AnalysisInput): ScheduleAnalysis {
   return calculate(input, interpretation);
 }
 
-function calculate(
+export function calculate(
   input: AnalysisInput,
   interpretation: ReturnType<typeof validateInterpretation>,
+  provenance: Pick<ScheduleAnalysis, "mode" | "modeDetail"> = {
+    mode: "rules-based",
+    modeDetail,
+  },
 ): ScheduleAnalysis {
   const order = validateGraph(input.schedule);
   const { tasks, milestone } = input.schedule;
@@ -548,8 +552,7 @@ function calculate(
     beforeMilestone = finish(milestone.taskIds, baseline);
   const common = {
     ...interpretation,
-    mode: "rules-based" as const,
-    modeDetail,
+    ...provenance,
     convention,
     beforeFinish,
     beforeMilestone,

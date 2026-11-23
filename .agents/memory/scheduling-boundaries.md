@@ -8,11 +8,11 @@ Keep project-day schedule calculation deterministic, with foreman acceptance bef
 
 **How to apply:** Require explicit project-day timing or a visibly confirmed start. Preserve baseline float and use absolute outage windows without double-counting shared equipment. Live AI must be honestly distinguished from fallback.
 
-When managed AI provisioning or live verification is blocked, deliver explicitly labeled deterministic fallback rather than requesting a personal credential.
+Use managed GPT-5 mini for language interpretation and schedule Q&A. Keep model unavailability explicit rather than silently substituting a rules result or requesting a personal credential.
 
 **Why:** The user explicitly authorized a deterministic-only delivery if provisioning or live verification was blocked.
 
-**How to apply:** Retry managed provisioning in a capable environment before claiming live AI. Default to gpt-5-mini without premium escalation; measure real tokens and do not quote credit prices without verifying applicable Replit rates.
+**How to apply:** Verify managed provisioning with a live request before claiming live AI. Default to gpt-5-mini without premium escalation; measure real tokens and do not quote credit prices without verifying applicable Replit rates. Treat the model's structured output as a proposed interpretation, not an authoritative schedule change.
 
 Keep working duration distinct from elapsed time across accepted interruptions.
 
