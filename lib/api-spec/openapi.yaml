@@ -30,8 +30,13 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ScheduleError" }
+        "429":
+          description: Project AI budget or daily visitor limit reached
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScheduleError" }
         "503":
-          description: Schedule model unavailable or busy
+          description: Schedule model unavailable, busy, or usage limits could not be checked
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ScheduleError" }
@@ -54,8 +59,13 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ScheduleError" }
+        "429":
+          description: Project AI budget or daily visitor limit reached
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScheduleError" }
         "503":
-          description: Schedule model unavailable or busy
+          description: Schedule model unavailable, busy, or usage limits could not be checked
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ScheduleError" }

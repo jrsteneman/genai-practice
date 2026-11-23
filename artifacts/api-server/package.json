@@ -9,6 +9,7 @@
     "start": "node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node test/run.mjs",
+    "test:budget": "bash test/run-budget.sh",
     "test:api": "node test/run.mjs --api"
   },
   "dependencies": {

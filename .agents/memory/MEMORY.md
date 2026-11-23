@@ -1,1 +1,2 @@
 - [Scheduling boundaries](scheduling-boundaries.md) — deterministic dates, explicit project-day timing, foreman acceptance, and honest AI deferral.
+- [Public AI spending](public-ai-spending.md) — hold the full multi-call cost before dispatch, and treat uncertain charges as spent.

@@ -6,6 +6,10 @@ import { logger } from "./lib/logger";
 
 const app: Express = express();
 
+// Requests enter through the Replit edge. Use its nearest forwarded address,
+// not a client-supplied leftmost X-Forwarded-For value.
+app.set("trust proxy", 1);
+
 app.use(
   pinoHttp({
     logger,

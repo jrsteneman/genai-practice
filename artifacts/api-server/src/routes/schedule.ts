@@ -1,17 +1,31 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Response } from "express";
 import {
   AnalyzeScheduleBody,
   AnalyzeScheduleResponse,
   AskScheduleBody,
   AskScheduleResponse,
 } from "@workspace/api-zod";
+import { analyzeWithModel, answerWithModel } from "../lib/schedule-ai";
 import {
-  analyzeWithModel,
-  answerWithModel,
+  ScheduleAiLimitReached,
   ScheduleModelUnavailable,
-} from "../lib/schedule-ai";
+} from "../lib/schedule-ai-budget";
 
 const router: IRouter = Router();
+function scheduleError(res: Response, error: unknown) {
+  const status =
+    error instanceof ScheduleAiLimitReached
+      ? 429
+      : error instanceof ScheduleModelUnavailable
+        ? 503
+        : 400;
+  res
+    .status(status)
+    .json({
+      error: error instanceof Error ? error.message : "Invalid schedule.",
+    });
+}
+
 router.post("/schedule/analyze", async (req, res): Promise<void> => {
   const parsed = AnalyzeScheduleBody.safeParse(req.body);
   if (!parsed.success) {
@@ -26,12 +40,12 @@ router.post("/schedule/analyze", async (req, res): Promise<void> => {
   }
   try {
     res.json(
-      AnalyzeScheduleResponse.parse(await analyzeWithModel(parsed.data)),
+      AnalyzeScheduleResponse.parse(
+        await analyzeWithModel(parsed.data, req.ip),
+      ),
     );
   } catch (e) {
-    res
-      .status(e instanceof ScheduleModelUnavailable ? 503 : 400)
-      .json({ error: e instanceof Error ? e.message : "Invalid schedule." });
+    scheduleError(res, e);
   }
 });
 router.post("/schedule/question", async (req, res): Promise<void> => {
@@ -50,13 +64,12 @@ router.post("/schedule/question", async (req, res): Promise<void> => {
           parsed.data.context,
           parsed.data.question,
           parsed.data.recentQuestions,
+          req.ip,
         ),
       ),
     );
   } catch (e) {
-    res
-      .status(e instanceof ScheduleModelUnavailable ? 503 : 400)
-      .json({ error: e instanceof Error ? e.message : "Invalid schedule." });
+    scheduleError(res, e);
   }
 });
 export default router;

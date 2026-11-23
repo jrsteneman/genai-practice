@@ -5,7 +5,8 @@ import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 const dir = await mkdtemp(join(tmpdir(), "slipless-tests-"));
 try {
-  const entry = process.argv.includes("--api") ? "api" : "schedule";
+  const entry = process.argv.includes("--budget") ? "budget"
+    : process.argv.includes("--api") ? "api" : "schedule";
   await build({
     entryPoints: [`test/${entry}.test.ts`],
     outfile: join(dir, `${entry}.test.mjs`),
