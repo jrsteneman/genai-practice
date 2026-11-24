@@ -10,3 +10,12 @@ API access to a small model for quite awhile until just recently, leading to a r
 syntax recognition, and so my own testing and judgment was necessary to revise it into a useful state. As an example, the recommendation engine would always include the word "Yes" at the beginning of each
 of its analysis sections, which reads unnaturally and so I had to remove that while addressing the regressions in the syntax rendering that resulted from this change.
 
+## Risks and Tradeoffs
+An important issue to consider with this product as it stands is data privacy. Inputting an entire construction schedule into an LLM through an API could lead to some unintentional data leakage about the
+inner workings of the construction firm that may seem innocuous at first glance. This could be especially evident if the slippage in question involves a labor slippage, where the names of employees and 
+their work attendance history could be inadvertently leaked to some third party without proper handling of the situation. Stricter guards to ensure that no more information than is absolutely necessary
+to reallocate the schedule could be provided in order to ensure that such unintentional leaks do not occur. Another potential risk could be a possible over-reliance on this tool and a resulting lack of 
+thought toward critically thinking about the proposed reallocation. This has been partially answered by the analysis and in-depth description of the AI-proposed solution to allow for a human audit of the
+result. Still, this solution relies on the user expending conscious effort to audit the solution, and so ultimately remains a risk that only a user with a penchant for cognitive effort can overcome,
+although the product at least somewhat enables the user to do so.
+
