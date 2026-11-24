@@ -4,7 +4,7 @@ This first slice takes several pre-generated schedules and allows the user to in
 
 The site can be accssed at this link: https://construction-schedule-recovery.replit.app
 
-At this moment the AI behavior is simulated: it interprets key words in the input and makes a reasonable guess about what the change should be.
+At this moment the AI behavior is simulated: it interprets key words in the input and makes a reasonable guess about what the change should be. (Now revised)
 
 The following is a table indicating the test results for various cases:
 
@@ -23,7 +23,7 @@ It also lacks the ability to save any inputted data, which is a lesser priority 
 
 ## Revision
 
-An attempt at AI functionality was made, but not successfully at this point, further research into integrations for implementing a relatively small language model like gpt-mini must be done in order to accomplish this. As of right now, the intended AI functionality is implemented via a deterministic algorithm, but it is more robust than previously.
+An attempt at AI functionality was made, but not successfully at this point, further research into integrations for implementing a relatively small language model like gpt-mini must be done in order to accomplish this. As of right now, the intended AI functionality is implemented via a deterministic algorithm, but it is more robust than previously. (Now revised to include model)
 
 | Feedback or observed issue | Decision | What changed, or why it was deferred |
 | -------- | -------- | -------- |
@@ -57,8 +57,8 @@ Representative prompts: Sample: "Make the recovery plan input a little bit more 
 Human judgment: The detailed plan summary would include "Yes." at the beginning of each answer, as if responding to a question. I had this removed since it is off-putting for a person to read.
 Verification: Using the above tests and the testing from reviews, I was able to fix many of the issues at least from this implementation.
 
-AI inside the product: GPT-5 Mini is used within the application for request language processing and to power the recommendation engine. It receives the schedule and slippage incident from the user and 
-produces a schedule revision with an overview of the delays, and allows for follow-ups. All of this is done through an API call that integrates seamlessly into the design flow of the product, with a 
+AI inside the product: GPT-5 Mini is now used within the application for request language processing and to power the recommendation engine. It receives the schedule and slippage incident from the user 
+and produces a schedule revision with an overview of the delays, and allows for follow-ups. All of this is done through an API call that integrates seamlessly into the design flow of the product, with a 
 short delay for the request to process.
 
 ## Demo Video
