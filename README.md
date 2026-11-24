@@ -49,11 +49,17 @@ A risk that may occur with this offering is the recommendation engine may misint
 ## AI Use
 
 Tools used: Replit
+
 Development assistance: Replit produced all of the code, and fixed bugs and security issues following prompting
+
 Representative prompts: Sample: "Make the recovery plan input a little bit more resilient, since as it stands right now changing "tower crane" to "forklift" changes nothing in the recommendation when it obviously should. Also changing the first crew disruption to an equipment disruption gives a generic answer. It doesn't have to be perfect, but stuff like this should at least give a reasonable looking answer." This produced a recommendation engine which was able to respond to different tools and give different recommendations. This had to be further revised to allow for different structures of the request which affect the result. Sample: Redo the aesthetic design of the web app to be mostly consistent with the design markdown file I have attached. Stick mostly to the file, but exact rigid rules will be added later. Keep the general layout as it is now, though. This changed the design of the website to be consistent with a design document I made, and is an example of an aesthetic revision I made.
+
 Human judgment: The detailed plan summary would include "Yes." at the beginning of each answer, as if responding to a question. I had this removed since it is off-putting for a person to read.
 Verification: Using the above tests and the testing from reviews, I was able to fix many of the issues at least from this implementation.
-AI inside the product: The AI will eventually serve as the request processing and schedule design engine. It will receive the schedule and slippage incident from the user and produce a schedule revision with an overview of the delays, and allow for follow-ups. This is not yet implemented, but will be in such a way that the current functionality is maintained.
+
+AI inside the product: GPT-5 Mini is used within the application for request language processing and to power the recommendation engine. It receives the schedule and slippage incident from the user and 
+produces a schedule revision with an overview of the delays, and allows for follow-ups. All of this is done through an API call that integrates seamlessly into the design flow of the product, with a 
+short delay for the request to process.
 
 ## Demo Video
 
