@@ -54,7 +54,7 @@ Development assistance: Replit produced all of the code, and fixed bugs and secu
 
 Representative prompts: Sample: "Make the recovery plan input a little bit more resilient, since as it stands right now changing "tower crane" to "forklift" changes nothing in the recommendation when it obviously should. Also changing the first crew disruption to an equipment disruption gives a generic answer. It doesn't have to be perfect, but stuff like this should at least give a reasonable looking answer." This produced a recommendation engine which was able to respond to different tools and give different recommendations. This had to be further revised to allow for different structures of the request which affect the result. Sample: Redo the aesthetic design of the web app to be mostly consistent with the design markdown file I have attached. Stick mostly to the file, but exact rigid rules will be added later. Keep the general layout as it is now, though. This changed the design of the website to be consistent with a design document I made, and is an example of an aesthetic revision I made.
 
-Human judgment: The detailed plan summary would include "Yes." at the beginning of each answer, as if responding to a question. I had this removed since it is off-putting for a person to read.
+Human judgment: The detailed plan summary would include "Yes." at the beginning of each answer, as if responding to a  question. I had this removed since it is off-putting for a person to read.
 Verification: Using the above tests and the testing from reviews, I was able to fix many of the issues at least from this implementation.
 
 AI inside the product: GPT-5 Mini is now used within the application for request language processing and to power the recommendation engine. It receives the schedule and slippage incident from the user 
@@ -64,3 +64,8 @@ short delay for the request to process.
 ## Demo Video
 
 [https://drive.google.com/file/d/1pM3D0_cshCoohvfYw9zCoxY1if8U5JZ4/view?usp=drive_link](https://drive.google.com/file/d/1U5-CjRyUVkH5p8vXLkTd4dnAbjR0ONv9/view?usp=drive_link)
+
+## Other Documentation
+
+[Product Requirements](prd-final.md)
+[Implementation and Ethics](implementation-ethics.md)
